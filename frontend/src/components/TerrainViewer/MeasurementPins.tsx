@@ -30,34 +30,34 @@ export const MeasurementPins: React.FC<MeasurementPinsProps> = ({
       {pointAPos && (
         <group position={[pointAPos.x, pointAPos.y, pointAPos.z]}>
           {/* Vertical Pin Needle */}
-          <mesh position={[0, 4, 0]}>
-            <cylinderGeometry args={[0.2, 0.05, 8, 16]} />
+          <mesh position={[0, 2.5, 0]}>
+            <cylinderGeometry args={[0.12, 0.03, 5, 12]} />
             <meshStandardMaterial color="#00e5ff" emissive="#00e5ff" emissiveIntensity={0.8} />
           </mesh>
           {/* Glowing Sphere Head */}
-          <mesh position={[0, 8, 0]}>
-            <sphereGeometry args={[1.2, 16, 16]} />
+          <mesh position={[0, 5, 0]}>
+            <sphereGeometry args={[0.6, 16, 16]} />
             <meshStandardMaterial color="#00e5ff" emissive="#00e5ff" emissiveIntensity={1.5} roughness={0.1} />
           </mesh>
           {/* Base beacon ring on terrain */}
           <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.8, 1.8, 32]} />
+            <ringGeometry args={[0.5, 1.2, 24]} />
             <meshBasicMaterial color="#00e5ff" side={THREE.DoubleSide} transparent opacity={0.6} />
           </mesh>
 
-          {/* HTML Billboard Label */}
+          {/* HTML Billboard Label - Ultra Compact 50% Sized */}
           {pointAData && (
-            <Html position={[0, 11, 0]} center distanceFactor={80}>
-              <div className="bg-slate-950/95 border border-cyan-400 rounded-xl px-3 py-2 text-[11px] shadow-2xl backdrop-blur-md pointer-events-none whitespace-nowrap space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                  <strong className="text-cyan-300 font-bold tracking-wider">POINT A</strong>
+            <Html position={[0, 7, 0]} center>
+              <div className="transform scale-[0.55] origin-bottom bg-slate-950/90 border border-cyan-400/80 px-2.5 py-1 rounded-md font-mono shadow-xl backdrop-blur-md pointer-events-none whitespace-nowrap text-center">
+                <div className="flex items-center justify-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <strong className="text-cyan-300 font-bold text-[9px] tracking-wider uppercase">
+                    {measurement || pointBData ? 'POINT A' : 'POINT'}
+                  </strong>
+                  <span className="text-white font-bold text-[10px]">{pointAData.elevation} m</span>
                 </div>
-                <div className="text-slate-200 font-mono text-xs font-semibold">
-                  {pointAData.elevation} m
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  {pointAData.latitude}°, {pointAData.longitude}°
+                <div className="text-[8px] text-slate-400">
+                  {pointAData.latitude.toFixed(6)}°, {pointAData.longitude.toFixed(6)}°
                 </div>
               </div>
             </Html>
@@ -69,34 +69,32 @@ export const MeasurementPins: React.FC<MeasurementPinsProps> = ({
       {pointBPos && (
         <group position={[pointBPos.x, pointBPos.y, pointBPos.z]}>
           {/* Vertical Pin Needle */}
-          <mesh position={[0, 4, 0]}>
-            <cylinderGeometry args={[0.2, 0.05, 8, 16]} />
+          <mesh position={[0, 2.5, 0]}>
+            <cylinderGeometry args={[0.12, 0.03, 5, 12]} />
             <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.8} />
           </mesh>
           {/* Glowing Sphere Head */}
-          <mesh position={[0, 8, 0]}>
-            <sphereGeometry args={[1.2, 16, 16]} />
+          <mesh position={[0, 5, 0]}>
+            <sphereGeometry args={[0.6, 16, 16]} />
             <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={1.5} roughness={0.1} />
           </mesh>
           {/* Base beacon ring on terrain */}
           <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.8, 1.8, 32]} />
+            <ringGeometry args={[0.5, 1.2, 24]} />
             <meshBasicMaterial color="#f43f5e" side={THREE.DoubleSide} transparent opacity={0.6} />
           </mesh>
 
-          {/* HTML Billboard Label */}
+          {/* HTML Billboard Label - Ultra Compact 50% Sized */}
           {pointBData && (
-            <Html position={[0, 11, 0]} center distanceFactor={80}>
-              <div className="bg-slate-950/95 border border-rose-400 rounded-xl px-3 py-2 text-[11px] shadow-2xl backdrop-blur-md pointer-events-none whitespace-nowrap space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-400 animate-pulse" />
-                  <strong className="text-rose-300 font-bold tracking-wider">POINT B</strong>
+            <Html position={[0, 7, 0]} center>
+              <div className="transform scale-[0.55] origin-bottom bg-slate-950/90 border border-rose-400/80 px-2.5 py-1 rounded-md font-mono shadow-xl backdrop-blur-md pointer-events-none whitespace-nowrap text-center">
+                <div className="flex items-center justify-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                  <strong className="text-rose-300 font-bold text-[9px] tracking-wider uppercase">POINT B</strong>
+                  <span className="text-white font-bold text-[10px]">{pointBData.elevation} m</span>
                 </div>
-                <div className="text-slate-200 font-mono text-xs font-semibold">
-                  {pointBData.elevation} m
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  {pointBData.latitude}°, {pointBData.longitude}°
+                <div className="text-[8px] text-slate-400">
+                  {pointBData.latitude.toFixed(6)}°, {pointBData.longitude.toFixed(6)}°
                 </div>
               </div>
             </Html>
@@ -109,8 +107,8 @@ export const MeasurementPins: React.FC<MeasurementPinsProps> = ({
         <group>
           {/* 3D Cylinder laser beam */}
           {(() => {
-            const start = pointAPos.clone().add(new THREE.Vector3(0, 8, 0));
-            const end = pointBPos.clone().add(new THREE.Vector3(0, 8, 0));
+            const start = pointAPos.clone().add(new THREE.Vector3(0, 5, 0));
+            const end = pointBPos.clone().add(new THREE.Vector3(0, 5, 0));
             const mid = start.clone().lerp(end, 0.5);
             const dist = start.distanceTo(end);
             const dir = end.clone().sub(start).normalize();
@@ -119,18 +117,18 @@ export const MeasurementPins: React.FC<MeasurementPinsProps> = ({
             return (
               <group position={mid} quaternion={quat}>
                 <mesh>
-                  <cylinderGeometry args={[0.2, 0.2, dist, 8]} />
+                  <cylinderGeometry args={[0.12, 0.12, dist, 8]} />
                   <meshBasicMaterial color="#38bdf8" transparent opacity={0.85} />
                 </mesh>
 
-                {/* Measurement Badge Floating at midpoint */}
+                {/* Measurement Badge Floating at midpoint - Ultra Compact 50% Sized */}
                 {measurement && (
-                  <Html position={[0, 0, 0]} center distanceFactor={70}>
-                    <div className="bg-slate-950/95 border border-cyan-400/80 rounded-xl px-4 py-2 text-center shadow-2xl backdrop-blur-md pointer-events-none whitespace-nowrap font-mono space-y-0.5">
-                      <div className="text-xs font-bold text-cyan-300">
-                        Δh: {measurement.height_difference > 0 ? `+${measurement.height_difference}` : measurement.height_difference} m
+                  <Html position={[0, 0, 0]} center>
+                    <div className="transform scale-[0.55] origin-center bg-slate-950/90 border border-cyan-400/80 px-2.5 py-1 rounded-md font-mono text-cyan-300 shadow-xl backdrop-blur-md pointer-events-none whitespace-nowrap text-center">
+                      <div className="text-[9px] font-bold">
+                        Δh: <span className="text-white">{measurement.height_difference > 0 ? `+${measurement.height_difference}` : measurement.height_difference} m</span>
                       </div>
-                      <div className="text-[10px] text-slate-300">
+                      <div className="text-[8px] text-slate-300 font-normal">
                         Dist: {(measurement.distance_meters / 1000).toFixed(2)} km ({measurement.slope_percent}%)
                       </div>
                     </div>
