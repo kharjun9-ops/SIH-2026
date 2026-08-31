@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Layers, 
   MapPin, 
@@ -40,11 +40,9 @@ import {
   WaterFeature
 } from '../types';
 import { MapPicker } from '../components/Map/MapPicker';
-import { DataQualityDebugPanel } from '../components/Debug/DataQualityDebugPanel';
 import { ImageUploader } from '../components/ImageUploader/ImageUploader';
 import { TerrainCanvas } from '../components/TerrainViewer/TerrainCanvas';
 import { TerrainControls } from '../components/TerrainControls/TerrainControls';
-import { ElevationPanel } from '../components/ElevationPanel/ElevationPanel';
 import { AnalysisPanel } from '../components/AnalysisPanel/AnalysisPanel';
 import { TerrainProfileModal } from '../components/TerrainViewer/TerrainProfileModal';
 import { AccuracyModal } from '../components/ValidationPanel/AccuracyModal';
@@ -138,9 +136,11 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingFeature | null>(null);
   const [selectedRoad, setSelectedRoad] = useState<RoadFeature | null>(null);
   const [selectedWater, setSelectedWater] = useState<WaterFeature | null>(null);
+  const [hasSelectedArea, setHasSelectedArea] = useState<boolean>(false);
 
   const handleApplyCoordinates = (e: React.FormEvent) => {
     e.preventDefault();
+    setHasSelectedArea(true);
     const lat = parseFloat(customLat);
     const lon = parseFloat(customLon);
     const rad = parseFloat(customRadius) || 2500;
@@ -248,6 +248,20 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
     }
   };
 
+  // Fetch environment layers only when the user has actively selected an area and requested 3D generation
+  useEffect(() => {
+    if (hasSelectedArea && terrainData?.bounds && dataMode === 'real') {
+      handleFetchEnvironment(terrainData.bounds);
+    }
+  }, [
+    hasSelectedArea,
+    terrainData?.bounds?.center_lat,
+    terrainData?.bounds?.center_lon,
+    terrainData?.bounds?.min_lat,
+    terrainData?.bounds?.max_lat,
+    dataMode
+  ]);
+
   const handleToggleLayer = (layer: keyof LayerVisibility) => {
     setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
   };
@@ -258,14 +272,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-emerald-400 text-xs font-mono flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>AUTHORITATIVE DEM & LiDAR PIPELINE</span>
-            </span>
-            <span className="text-xs text-slate-500 font-mono">1:1 METRIC COORDINATE SPACE</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-1">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Terrain Reconstruction Pipeline
           </h1>
         </div>
@@ -298,35 +305,10 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
               DEMO MODE
             </button>
           </div>
-
-          <button
-            onClick={() => onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode })}
-            disabled={isLoading}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm rounded-xl shadow-xl shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 transition-all flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>{isLoading ? 'Reconstructing...' : 'Generate 3D Terrain'}</span>
-          </button>
         </div>
       </div>
 
-      {/* Mode Indicator Notice */}
-      {dataMode === 'demo' ? (
-        <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-xs text-amber-200 flex items-center gap-2 font-mono">
-          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span><strong>DEMO / SYNTHETIC TERRAIN DATA:</strong> You are currently in Demo Mode using offline synthetic geomorphology models. Switch to <strong>REAL DATA MODE</strong> to fetch authoritative Copernicus GLO-30 / SRTM / LiDAR data.</span>
-        </div>
-      ) : (
-        <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-200 flex items-center justify-between font-mono">
-          <span className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span><strong>REAL DATA MODE ACTIVE:</strong> Strictly querying live remote sensing elevation models (Copernicus DEM GLO-30 ~30m DSM, NASA SRTM GL1, or Airborne LiDAR).</span>
-          </span>
-          <span className="text-[10px] bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700/60 text-emerald-300">
-            Authoritative Pipeline
-          </span>
-        </div>
-      )}
+
 
       {/* Input Selection Tabs (Method 1: Map, Method 2: Coords, Method 3: Image, Method 4: LiDAR) */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 w-fit">
@@ -389,10 +371,16 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
             radiusMeters={radiusMeters}
             onLocationChange={onLocationChange}
             samples={samples}
-            onSelectSample={onSelectSample}
+            onSelectSample={(sampleId) => {
+              setHasSelectedArea(true);
+              onSelectSample(sampleId);
+            }}
             inspectedLat={selectedPoint?.latitude}
             inspectedLon={selectedPoint?.longitude}
-            onGenerate3DWorld={() => onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode })}
+            onGenerate3DWorld={() => {
+              setHasSelectedArea(true);
+              onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode });
+            }}
             isLoading={isLoading}
           />
         </div>
@@ -617,15 +605,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 providerUsed={terrainData.provider_used}
                 gridResolution={terrainData.grid_resolution}
               />
-
-              {/* Development Data Pipeline Debug Panel (Requirement #21) */}
-              <DataQualityDebugPanel
-                bounds={terrainData.bounds}
-                terrainData={terrainData}
-                environmentData={environmentData}
-                dataMode={dataMode}
-                pilotName="BENGALURU PILOT"
-              />
             </div>
 
             {/* Right Column: Controls & Point Inspection Panels */}
@@ -698,8 +677,8 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 </div>
               )}
 
-              {/* Environment Coverage & Feature Summary Card */}
-              {environmentData && (
+              {/* Environment Coverage & Feature Summary Card (Shown when selected) */}
+              {hasSelectedArea && environmentData && (
                 <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-4 shadow-2xl space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
                     <div className="flex items-center gap-2">
@@ -933,20 +912,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                   <div className="text-[10px] text-slate-500 font-mono">Source: {selectedRoad.source}</div>
                 </div>
               )}
-
-              <ElevationPanel
-                activeTool={activeTool}
-                selectedPoint={selectedPoint}
-                pointAData={pointAData}
-                pointBData={pointBData}
-                measurement={measurement}
-                onClearMeasurement={() => {
-                  handleSetMeasurement(null, null, null, null, null);
-                  setPointValidation(null);
-                }}
-                pointValidation={pointValidation}
-              />
-
             </div>
 
           </div>

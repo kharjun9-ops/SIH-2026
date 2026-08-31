@@ -306,26 +306,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
           </div>
         )}
 
-        {/* Quick Sample Presets */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
-          <span className="text-slate-400 font-medium whitespace-nowrap flex items-center gap-1 font-mono">
-            <Compass className="w-3.5 h-3.5 text-cyan-400" /> Presets:
-          </span>
-          {samples.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onSelectSample(s.id)}
-              className={`px-2.5 py-1 rounded-lg border transition-colors whitespace-nowrap flex items-center gap-1.5 font-mono ${
-                s.id === 'bengaluru_pilot'
-                  ? 'bg-blue-950 border-blue-600/70 text-blue-200 font-bold shadow-sm'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
-              }`}
-            >
-              <span>{s.name.split('(')[0]}</span>
-              <span className="text-[10px] text-cyan-400/80">({s.peak_elevation}m)</span>
-            </button>
-          ))}
-        </div>
+
       </div>
 
       {/* Interactive Map Viewport with Leaflet TileLayers */}
