@@ -1,0 +1,4 @@
+[    1345ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://sih-2026-1-dquv.onrender.com/api/terrain/samples:0
+[    1347ms] [ERROR] Failed to fetch sample regions: Error: Failed to load sample regions
+    at Object.fetchSamples (https://sih-2026-1-dquv.onrender.com/assets/index-DA3cyAl_.js:293:9450)
+    at async https://sih-2026-1-dquv.onrender.com/assets/index-DA3cyAl_.js:4249:128390 @ https://sih-2026-1-dquv.onrender.com/assets/index-DA3cyAl_.js:4128

@@ -7,6 +7,7 @@ import {
   ColormapMode, 
   PointInspection 
 } from '../../types';
+import { resolveAssetUrl } from '../../services/api';
 
 interface TerrainMeshProps {
   terrainData: TerrainReconstructResponse;
@@ -76,10 +77,12 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
 
   // Load satellite texture if available
   useEffect(() => {
-    if (terrainData.texture_url) {
+    const rawUrl = terrainData.texture_url;
+    if (rawUrl) {
+      const url = resolveAssetUrl(rawUrl) || rawUrl;
       const loader = new THREE.TextureLoader();
       loader.load(
-        terrainData.texture_url,
+        url,
         (tex) => {
           tex.wrapS = THREE.ClampToEdgeWrapping;
           tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -95,10 +98,12 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
 
   // Load hillshade texture if available
   useEffect(() => {
-    if (terrainData.hillshade_url) {
+    const rawUrl = terrainData.hillshade_url;
+    if (rawUrl) {
+      const url = resolveAssetUrl(rawUrl) || rawUrl;
       const loader = new THREE.TextureLoader();
       loader.load(
-        terrainData.hillshade_url,
+        url,
         (tex) => {
           tex.wrapS = THREE.ClampToEdgeWrapping;
           tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -299,7 +304,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     return null;
   }, [visualMode, satelliteTexture, hillshadeTexture, showSatelliteTexture]);
 
-  const useVertexColors = !activeTexture || visualMode === 'elevation' || visualMode === 'slope';
+  const useVertexColors = !activeTexture || visualMode === 'slope';
 
   return (
     <group>

@@ -2,26 +2,77 @@ import {
   TerrainReconstructResponse, 
   TwoPointMeasurementResponse, 
   ImageAnalysisResponse, 
-  SampleRegion,
-  LatLonBounds,
-  PointValidation,
-  ValidationReport,
-  LiDARProcessResponse,
-  EnvironmentLayersResponse
+  SampleRegion, 
+  LatLonBounds, 
+  PointValidation, 
+  ValidationReport, 
+  LiDARProcessResponse, 
+  EnvironmentLayersResponse,
+  PointInspection
 } from '../types';
 
-// Support custom backend URL in production (e.g. VITE_API_BASE_URL=https://my-backend.onrender.com)
+// Support custom backend URL in production (e.g. VITE_API_BASE_URL=https://sih-2026-eqxk.onrender.com)
 // In local development, falls back to Vite proxy at '/api'
 const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL as string) || '';
-const API_BASE = rawBaseUrl.trim()
+export const API_BASE = rawBaseUrl.trim()
   ? `${rawBaseUrl.trim().replace(/\/$/, '')}/api`
   : '/api';
+
+/**
+ * Resolves relative asset paths (e.g., /api/uploads/...) to full backend URLs in production.
+ */
+export function resolveAssetUrl(path?: string | null): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path;
+  }
+  const raw = (import.meta.env.VITE_API_BASE_URL as string || '').trim();
+  const base = raw.replace(/\/api\/?$/, '').replace(/\/$/, '');
+  if (base && path.startsWith('/')) {
+    return `${base}${path}`;
+  }
+  return path;
+}
+
+/**
+ * Robust response handler checking HTTP status, parsing JSON safely,
+ * and returning informative error messages without "Unexpected end of JSON input".
+ */
+async function handleResponse<T>(res: Response, endpointDesc: string): Promise<T> {
+  if (!res.ok) {
+    let errorDetail = `HTTP ${res.status} (${res.statusText || 'Error'})`;
+    try {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const json = await res.json();
+        errorDetail = json.detail || json.message || JSON.stringify(json);
+      } else {
+        const text = await res.text();
+        if (text && text.trim().length > 0) {
+          errorDetail = text.slice(0, 300);
+        }
+      }
+    } catch {
+      // Fall back to status text
+    }
+    throw new Error(`[${endpointDesc}] ${errorDetail} (Status ${res.status})`);
+  }
+
+  try {
+    const text = await res.text();
+    if (!text || !text.trim()) {
+      throw new Error(`Empty response received from server`);
+    }
+    return JSON.parse(text) as T;
+  } catch (e: any) {
+    throw new Error(`[${endpointDesc}] Failed to parse JSON response: ${e.message}`);
+  }
+}
 
 export const api = {
   async fetchSamples(): Promise<{ samples: SampleRegion[] }> {
     const res = await fetch(`${API_BASE}/terrain/samples`);
-    if (!res.ok) throw new Error('Failed to load sample regions');
-    return res.json();
+    return handleResponse<{ samples: SampleRegion[] }>(res, 'Fetch Samples');
   },
 
   async reconstructTerrain(params: {
@@ -46,11 +97,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Reconstruction error' }));
-      throw new Error(err.detail || 'Failed to reconstruct 3D terrain');
-    }
-    return res.json();
+    return handleResponse<TerrainReconstructResponse>(res, 'Reconstruct Terrain');
   },
 
   async validatePoint(latitude: number, longitude: number, mesh_elevation_m: number): Promise<PointValidation> {
@@ -59,8 +106,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ latitude, longitude, mesh_elevation_m }),
     });
-    if (!res.ok) throw new Error('Point validation error');
-    return res.json();
+    return handleResponse<PointValidation>(res, 'Validate Point');
   },
 
   async runAccuracyValidation(params: {
@@ -76,8 +122,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    if (!res.ok) throw new Error('Accuracy validation failed');
-    return res.json();
+    return handleResponse<ValidationReport>(res, 'Accuracy Validation');
   },
 
   async processLiDARFile(file: File, mode: 'dtm' | 'dsm' = 'dtm', resolution: number = 128): Promise<LiDARProcessResponse> {
@@ -90,21 +135,21 @@ export const api = {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'LiDAR processing failed' }));
-      throw new Error(err.detail || 'Failed to process LiDAR point cloud');
-    }
-    return res.json();
+    return handleResponse<LiDARProcessResponse>(res, 'Process LiDAR');
   },
 
-  async inspectPoint(latitude: number, longitude: number, mesh_elevation_m?: number, grid_bounds?: LatLonBounds): Promise<any> {
+  async inspectPoint(
+    latitude: number, 
+    longitude: number, 
+    mesh_elevation_m?: number, 
+    grid_bounds?: LatLonBounds
+  ): Promise<PointInspection> {
     const res = await fetch(`${API_BASE}/terrain/inspect_point`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ latitude, longitude, mesh_elevation_m, grid_bounds }),
     });
-    if (!res.ok) throw new Error('Point inspection error');
-    return res.json();
+    return handleResponse<PointInspection>(res, 'Inspect Point');
   },
 
   async measurePoints(
@@ -120,11 +165,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lat_a, lon_a, lat_b, lon_b, bounds, data_mode }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Measurement error' }));
-      throw new Error(err.detail || 'Failed to compute height difference');
-    }
-    return res.json();
+    return handleResponse<TwoPointMeasurementResponse>(res, 'Measure Two Points');
   },
 
   async analyzeImage(file: File): Promise<ImageAnalysisResponse> {
@@ -135,17 +176,12 @@ export const api = {
       method: 'POST',
       body: formData,
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Image analysis error' }));
-      throw new Error(err.detail || 'Failed to analyze uploaded image');
-    }
-    return res.json();
+    return handleResponse<ImageAnalysisResponse>(res, 'Analyze Image');
   },
 
   async queryElevation(lat: number, lon: number): Promise<{ latitude: number; longitude: number; elevation: number }> {
     const res = await fetch(`${API_BASE}/elevation?lat=${lat}&lon=${lon}`);
-    if (!res.ok) throw new Error('Elevation lookup failed');
-    return res.json();
+    return handleResponse<{ latitude: number; longitude: number; elevation: number }>(res, 'Query Elevation');
   },
 
   async export3DModel(params: any, format: 'glb' | 'obj' = 'glb', exaggeration: number = 1.0): Promise<Blob> {
@@ -154,7 +190,23 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    if (!res.ok) throw new Error('Failed to export 3D model');
+    if (!res.ok) {
+      let errorDetail = `HTTP ${res.status} (${res.statusText || 'Error'})`;
+      try {
+        const text = await res.text();
+        if (text && text.trim().length > 0) errorDetail = text.slice(0, 300);
+      } catch {}
+      throw new Error(`[Export 3D] ${errorDetail} (Status ${res.status})`);
+    }
+    return res.blob();
+  },
+
+  async fetchSampleImage(sampleId: string): Promise<Blob> {
+    const sampleUrl = resolveAssetUrl(`/api/samples/${sampleId}.jpg`) || `/api/samples/${sampleId}.jpg`;
+    const res = await fetch(sampleUrl);
+    if (!res.ok) {
+      throw new Error(`[Fetch Sample Image] HTTP ${res.status} (${res.statusText || 'Error'}) (Status ${res.status})`);
+    }
     return res.blob();
   },
 
@@ -195,10 +247,6 @@ export const api = {
         provider: params.provider || 'auto',
       }),
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Environment layers error' }));
-      throw new Error(err.detail || 'Failed to fetch environment layers');
-    }
-    return res.json();
+    return handleResponse<EnvironmentLayersResponse>(res, 'Environment Layers');
   }
 };

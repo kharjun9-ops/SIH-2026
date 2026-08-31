@@ -86,10 +86,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     setIsAnalyzing(true);
     setErrorMsg(null);
     try {
-      // Fetch sample image from backend
-      const res = await fetch(`/api/samples/${sampleId}.jpg`);
-      if (!res.ok) throw new Error('Sample image not found');
-      const blob = await res.blob();
+      // Fetch sample image from backend via api service
+      const blob = await api.fetchSampleImage(sampleId);
       const file = new File([blob], `${sampleId}.jpg`, { type: 'image/jpeg' });
       await handleFiles(file);
       onUseSampleImage(sampleId);

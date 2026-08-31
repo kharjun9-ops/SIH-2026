@@ -6,15 +6,22 @@ load_dotenv()
 
 def _get_allowed_origins() -> list:
     raw = os.getenv("ALLOWED_ORIGINS", "")
-    if raw.strip():
-        return [orig.strip() for orig in raw.split(",") if orig.strip()]
-    return [
+    defaults = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
-        "*"
+        "https://sih-2026-1-dquv.onrender.com",
+        "https://sih-2026-eqxk.onrender.com",
     ]
+    if raw.strip() == "*":
+        return ["*"]
+    if raw.strip():
+        custom = [orig.strip().rstrip("/") for orig in raw.split(",") if orig.strip()]
+        for c in custom:
+            if c not in defaults:
+                defaults.append(c)
+    return defaults
 
 def _find_data_dir() -> str:
     base_calc = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
