@@ -97,16 +97,28 @@ export const api = {
     return res.json();
   },
 
+  async inspectPoint(latitude: number, longitude: number, mesh_elevation_m?: number, grid_bounds?: LatLonBounds): Promise<any> {
+    const res = await fetch(`${API_BASE}/terrain/inspect_point`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude, longitude, mesh_elevation_m, grid_bounds }),
+    });
+    if (!res.ok) throw new Error('Point inspection error');
+    return res.json();
+  },
+
   async measurePoints(
     lat_a: number, 
     lon_a: number, 
     lat_b: number, 
-    lon_b: number
+    lon_b: number,
+    bounds?: LatLonBounds,
+    data_mode?: string
   ): Promise<TwoPointMeasurementResponse> {
     const res = await fetch(`${API_BASE}/terrain/measure`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lat_a, lon_a, lat_b, lon_b }),
+      body: JSON.stringify({ lat_a, lon_a, lat_b, lon_b, bounds, data_mode }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Measurement error' }));

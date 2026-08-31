@@ -136,11 +136,12 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingFeature | null>(null);
   const [selectedRoad, setSelectedRoad] = useState<RoadFeature | null>(null);
   const [selectedWater, setSelectedWater] = useState<WaterFeature | null>(null);
-  const [hasSelectedArea, setHasSelectedArea] = useState<boolean>(false);
+  const [showEnvironmentBreakdown, setShowEnvironmentBreakdown] = useState<boolean>(false);
 
   const handleApplyCoordinates = (e: React.FormEvent) => {
     e.preventDefault();
-    setHasSelectedArea(true);
+    setShowEnvironmentBreakdown(false);
+    setEnvironmentData(null);
     const lat = parseFloat(customLat);
     const lon = parseFloat(customLon);
     const rad = parseFloat(customRadius) || 2500;
@@ -247,20 +248,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
       setEnvLoading(false);
     }
   };
-
-  // Fetch environment layers only when the user has actively selected an area and requested 3D generation
-  useEffect(() => {
-    if (hasSelectedArea && terrainData?.bounds && dataMode === 'real') {
-      handleFetchEnvironment(terrainData.bounds);
-    }
-  }, [
-    hasSelectedArea,
-    terrainData?.bounds?.center_lat,
-    terrainData?.bounds?.center_lon,
-    terrainData?.bounds?.min_lat,
-    terrainData?.bounds?.max_lat,
-    dataMode
-  ]);
 
   const handleToggleLayer = (layer: keyof LayerVisibility) => {
     setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
@@ -372,13 +359,15 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
             onLocationChange={onLocationChange}
             samples={samples}
             onSelectSample={(sampleId) => {
-              setHasSelectedArea(true);
+              setShowEnvironmentBreakdown(false);
+              setEnvironmentData(null);
               onSelectSample(sampleId);
             }}
             inspectedLat={selectedPoint?.latitude}
             inspectedLon={selectedPoint?.longitude}
             onGenerate3DWorld={() => {
-              setHasSelectedArea(true);
+              setShowEnvironmentBreakdown(false);
+              setEnvironmentData(null);
               onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode });
             }}
             isLoading={isLoading}
@@ -587,7 +576,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                   onSetPointValidation={setPointValidation}
                   onOpenAccuracyModal={handleOpenAccuracyReport}
                   onOpenProfileModal={() => setIsProfileModalOpen(true)}
-                  environmentData={environmentData}
+                  environmentData={showEnvironmentBreakdown ? environmentData : null}
                   layerVisibility={layerVisibility}
                   colorBySource={colorBySource}
                   onBuildingClick={(b: BuildingFeature) => { setSelectedBuilding(b); setSelectedRoad(null); setSelectedWater(null); }}
@@ -638,19 +627,51 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 colorBySource={colorBySource}
                 onToggleColorBySource={() => setColorBySource(!colorBySource)}
                 environmentLoading={envLoading}
-                environmentAvailable={!!environmentData}
+                environmentAvailable={showEnvironmentBreakdown && !!environmentData}
               />
 
-              {/* Environment Layer Load Button & Status */}
-              {dataMode === 'real' && !environmentData && !envLoading && !envError && (
-                <button
-                  onClick={() => handleFetchEnvironment()}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-600/20 hover:shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
-                >
-                  <Layers className="w-4 h-4" />
-                  <span>Load Environment Vector Layers</span>
-                </button>
-              )}
+              {/* 🏢 On-Demand Environmental Breakdown Control Card */}
+              <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-4 shadow-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-amber-400" />
+                    <span className="font-bold text-sm text-white">Environmental Breakdown</span>
+                  </div>
+                  {showEnvironmentBreakdown && environmentData && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                      Rendered in 3D
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Extract real OpenStreetMap & LiDAR buildings, classified road networks, and water bodies sitting on this 3D model.
+                </p>
+
+                {!showEnvironmentBreakdown ? (
+                  <button
+                    onClick={async () => {
+                      setShowEnvironmentBreakdown(true);
+                      if (!environmentData && !envLoading) {
+                        await handleFetchEnvironment();
+                      }
+                    }}
+                    disabled={envLoading}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-xl shadow-amber-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>{envLoading ? 'Querying GIS Vector Data...' : 'Show Environmental Breakdown in 3D'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowEnvironmentBreakdown(false)}
+                    className="w-full px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-mono font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Hide Environmental Breakdown</span>
+                  </button>
+                )}
+              </div>
 
               {/* Loading Indicator */}
               {envLoading && (
@@ -677,8 +698,8 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 </div>
               )}
 
-              {/* Environment Coverage & Feature Summary Card (Shown when selected) */}
-              {hasSelectedArea && environmentData && (
+              {/* Environment Coverage & Feature Summary Card (Shown ONLY when Environmental Breakdown is active) */}
+              {showEnvironmentBreakdown && environmentData && (
                 <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-4 shadow-2xl space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
                     <div className="flex items-center gap-2">

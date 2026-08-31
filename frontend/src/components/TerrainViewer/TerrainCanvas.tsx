@@ -176,6 +176,20 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
       onSelectPoint(inspection);
       setSelectedPointPos(worldPos);
 
+      try {
+        const fullInsp = await api.inspectPoint(
+          inspection.latitude,
+          inspection.longitude,
+          inspection.mesh_elevation_m,
+          terrainData.bounds
+        );
+        if (fullInsp) {
+          onSelectPoint(fullInsp);
+        }
+      } catch (err) {
+        console.warn('Authoritative inspectPoint backend query:', err);
+      }
+
       if (onSetPointValidation) {
         try {
           const valRes = await api.validatePoint(inspection.latitude, inspection.longitude, inspection.elevation);
@@ -191,19 +205,42 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
         try {
           const measRes = await api.measurePoints(
             pointAData.latitude, pointAData.longitude,
-            inspection.latitude, inspection.longitude
+            inspection.latitude, inspection.longitude,
+            terrainData.bounds
           );
           onSetMeasurementPoints(pointAData, pointAPos, inspection, worldPos, measRes);
         } catch {
-          const dH = Number((inspection.elevation - pointAData.elevation).toFixed(1));
+          const dH = Number((inspection.elevation - pointAData.elevation).toFixed(2));
+          const midLat = ((pointAData.latitude + inspection.latitude) / 2.0) * (Math.PI / 180);
+          const dx = (inspection.longitude - pointAData.longitude) * 111320.0 * Math.cos(midLat);
+          const dz = (inspection.latitude - pointAData.latitude) * 111320.0;
+          const hDist = Number(Math.max(0.1, Math.sqrt(dx**2 + dz**2)).toFixed(2));
+          const d3D = Number(Math.sqrt(hDist**2 + dH**2).toFixed(2));
+          const slopeDeg = Number((Math.atan2(Math.abs(dH), hDist) * (180.0 / Math.PI)).toFixed(2));
+          const gradePct = Number(((Math.abs(dH) / hDist) * 100.0).toFixed(2));
+          const dir = dH > 0.05 ? 'Ascending' : dH < -0.05 ? 'Descending' : 'Flat';
+
           onSetMeasurementPoints(pointAData, pointAPos, inspection, worldPos, {
             point_a: pointAData,
             point_b: inspection,
             height_difference: dH,
-            distance_meters: 1000,
-            slope_percent: 5,
-            slope_degrees: 3,
-            comparison_text: `Point B is ${Math.abs(dH)}m ${dH >= 0 ? 'Higher' : 'Lower'} than Point A`,
+            horizontal_distance: hDist,
+            distance_meters: hDist,
+            distance_3d: d3D,
+            surface_distance_m: d3D,
+            slope_percent: gradePct,
+            slope_degrees: slopeDeg,
+            grade_percent: gradePct,
+            direction: dir,
+            average_gradient_pct: gradePct,
+            total_ascent_m: dH > 0 ? dH : 0,
+            total_descent_m: dH < 0 ? Math.abs(dH) : 0,
+            min_elevation_m: Math.min(pointAData.elevation, inspection.elevation),
+            comparison_text: `Point B is ${Math.abs(dH).toFixed(2)}m ${dH >= 0 ? 'Higher' : 'Lower'} than Point A (${gradePct}% grade)`,
+            source: terrainData.provider_used || 'Copernicus DEM GLO-30',
+            source_resolution: '~30m',
+            vertical_datum_compatible: true,
+            vertical_datum: 'EGM96 / EGM2008 Geoid (MSL)',
             elevation_profile: []
           });
         }

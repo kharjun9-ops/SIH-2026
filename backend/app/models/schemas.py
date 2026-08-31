@@ -65,6 +65,8 @@ class PointInspection(BaseModel):
     latitude: float
     longitude: float
     elevation: float
+    mesh_elevation_m: Optional[float] = None
+    elevation_difference_m: Optional[float] = None
     slope: float
     aspect: float
     aspect_cardinal: str
@@ -72,10 +74,20 @@ class PointInspection(BaseModel):
     grid_y: Optional[int] = None
     x_metric_m: Optional[float] = None
     y_metric_m: Optional[float] = None
+    source: Optional[str] = "Copernicus DEM GLO-30"
+    source_type: Optional[str] = "DSM (Digital Surface Model)"
+    native_resolution: Optional[str] = "~30m"
+    vertical_datum: Optional[str] = "EGM96 / EGM2008 Geoid (MSL)"
+    sampling_method: Optional[str] = "Bilinear interpolation"
+    coordinate_system: Optional[str] = "EPSG:4326 (WGS84) / Local Metric Projection"
+    num_contributing_points: Optional[int] = None
+    measurement_quality: Optional[str] = "Source-consistent measurement"
+    accuracy_statement: Optional[str] = None
 
 class PointInspectionRequest(BaseModel):
     latitude: float
     longitude: float
+    mesh_elevation_m: Optional[float] = None
     grid_bounds: Optional[LatLonBounds] = None
 
 class PointValidation(BaseModel):
@@ -183,6 +195,8 @@ class TwoPointMeasurementRequest(BaseModel):
     lon_a: float
     lat_b: float
     lon_b: float
+    bounds: Optional[LatLonBounds] = None
+    data_mode: Optional[str] = "real"
 
 class ElevationProfilePoint(BaseModel):
     distance_m: float
@@ -195,16 +209,24 @@ class TwoPointMeasurementResponse(BaseModel):
     point_a: PointInspection
     point_b: PointInspection
     height_difference: float
+    horizontal_distance: float
     distance_meters: float
+    distance_3d: float
     surface_distance_m: float
     slope_percent: float
     slope_degrees: float
+    grade_percent: float
+    direction: str  # "Ascending", "Descending", or "Flat"
     average_gradient_pct: float
     total_ascent_m: float
     total_descent_m: float
     min_elevation_m: float
     max_elevation_m: float
     comparison_text: str
+    source: str
+    source_resolution: str = "~30m"
+    vertical_datum_compatible: bool = True
+    vertical_datum: str = "EGM96 / EGM2008 Geoid (MSL)"
     elevation_profile: List[ElevationProfilePoint]
 
 class LiDARProcessResponse(BaseModel):

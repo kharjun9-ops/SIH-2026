@@ -44,6 +44,8 @@ export interface PointInspection {
   latitude: number;
   longitude: number;
   elevation: number;
+  mesh_elevation_m?: number;
+  elevation_difference_m?: number;
   slope: number;
   aspect: number;
   aspect_cardinal: string;
@@ -51,6 +53,15 @@ export interface PointInspection {
   grid_y?: number;
   x_metric_m?: number;
   y_metric_m?: number;
+  source?: string;
+  source_type?: string;
+  native_resolution?: string;
+  vertical_datum?: string;
+  sampling_method?: string;
+  coordinate_system?: string;
+  num_contributing_points?: number;
+  measurement_quality?: string;
+  accuracy_statement?: string;
 }
 
 export interface PointValidation {
@@ -140,16 +151,24 @@ export interface TwoPointMeasurementResponse {
   point_a: PointInspection;
   point_b: PointInspection;
   height_difference: number;
+  horizontal_distance?: number;
   distance_meters: number;
+  distance_3d?: number;
   surface_distance_m?: number;
   slope_percent: number;
   slope_degrees: number;
+  grade_percent?: number;
+  direction?: string;
   average_gradient_pct?: number;
   total_ascent_m?: number;
   total_descent_m?: number;
   min_elevation_m?: number;
   max_elevation_m?: number;
   comparison_text: string;
+  source?: string;
+  source_resolution?: string;
+  vertical_datum_compatible?: boolean;
+  vertical_datum?: string;
   elevation_profile: ElevationProfilePoint[];
 }
 

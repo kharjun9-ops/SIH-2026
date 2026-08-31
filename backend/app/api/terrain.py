@@ -31,6 +31,25 @@ def reconstruct_terrain(request: TerrainReconstructRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Terrain reconstruction failed: {str(e)}")
 
+@router.post("/inspect_point", response_model=PointInspection)
+def inspect_single_point(request: PointInspectionRequest):
+    """
+    Authoritative Point Inspection Pipeline.
+    Retrieves source elevation (LiDAR DTM / Copernicus / SRTM) using continuous interpolation,
+    calculates physical slope and aspect, and reports vertical datum and native resolution.
+    """
+    try:
+        bounds_dict = request.grid_bounds.model_dump() if request.grid_bounds else None
+        res = elevation_manager.inspect_point(
+            lat=request.latitude,
+            lon=request.longitude,
+            bounds=bounds_dict,
+            mesh_elevation_m=request.mesh_elevation_m
+        )
+        return PointInspection(**res)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Point inspection failed: {str(e)}")
+
 @router.post("/validate_point", response_model=PointValidation)
 def validate_point_elevation(request: PointValidationRequest):
     """
@@ -56,19 +75,26 @@ def validate_point_elevation(request: PointValidationRequest):
 @router.post("/measure", response_model=TwoPointMeasurementResponse)
 def measure_two_points(request: TwoPointMeasurementRequest):
     """
-    Calculate height difference, distance, slope gradient, and elevation profile between Point A and Point B.
+    Calculate authoritative height difference, horizontal distance, 3D distance,
+    slope gradient, grade percentage, and cross-section transect profile between Point A and Point B.
     """
     try:
-        min_lat = min(request.lat_a, request.lat_b) - 0.01
-        max_lat = max(request.lat_a, request.lat_b) + 0.01
-        min_lon = min(request.lon_a, request.lon_b) - 0.01
-        max_lon = max(request.lon_a, request.lon_b) + 0.01
-        bounds = {"min_lat": min_lat, "max_lat": max_lat, "min_lon": min_lon, "max_lon": max_lon}
+        if request.bounds:
+            bounds = request.bounds.model_dump()
+        else:
+            pad_lat = max(0.005, abs(request.lat_a - request.lat_b) * 0.2)
+            pad_lon = max(0.005, abs(request.lon_a - request.lon_b) * 0.2)
+            bounds = {
+                "min_lat": min(request.lat_a, request.lat_b) - pad_lat,
+                "max_lat": max(request.lat_a, request.lat_b) + pad_lat,
+                "min_lon": min(request.lon_a, request.lon_b) - pad_lon,
+                "max_lon": max(request.lon_a, request.lon_b) + pad_lon
+            }
 
-        elev_grid, _ = elevation_manager.get_elevation_grid(bounds, resolution=64)
+        elev_grid, meta = elevation_manager.get_elevation_grid(bounds, resolution=128, data_mode=request.data_mode or "real")
         metric_bounds = terrain_service.calculate_metric_bounds(bounds)
-        cell_x = metric_bounds.width_m / 63.0
-        cell_y = metric_bounds.height_m / 63.0
+        cell_x = metric_bounds.width_m / 127.0
+        cell_y = metric_bounds.height_m / 127.0
 
         from app.services.slope_aspect_service import slope_aspect_service
         slope_grid, aspect_grid = slope_aspect_service.calculate_slope_and_aspect(elev_grid, cell_x, cell_y)
@@ -76,7 +102,8 @@ def measure_two_points(request: TwoPointMeasurementRequest):
         result = terrain_service.measure_two_points(
             request.lat_a, request.lon_a,
             request.lat_b, request.lon_b,
-            elev_grid, slope_grid, aspect_grid, bounds
+            elev_grid, slope_grid, aspect_grid, bounds,
+            source_name=meta.get("source", "Copernicus DEM GLO-30")
         )
         return result
     except Exception as e:

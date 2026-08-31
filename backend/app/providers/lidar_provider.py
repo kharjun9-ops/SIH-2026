@@ -154,8 +154,51 @@ class LiDARProvider(ElevationProvider):
         }
         return grid_z.astype(np.float32).T, meta
 
-    def get_elevation(self, lat: float, lon: float) -> Optional[float]:
-        # If LiDAR file covering point exists, sample nearest/interpolated point
+    def get_elevation(self, lat: float, lon: float) -> Optional[Tuple[float, int]]:
+        """Query precise LiDAR elevation at a single coordinate from point cloud with IDW interpolation."""
+        self._scan_files()
+        for fpath in self.files_cache:
+            if fpath.endswith(('.las', '.laz')):
+                try:
+                    import laspy
+                    with laspy.open(fpath) as fh:
+                        hdr = fh.header
+                        if not (hdr.mins[1] <= lat <= hdr.maxs[1] and hdr.mins[0] <= lon <= hdr.maxs[0]):
+                            continue
+                    las = laspy.read(fpath)
+                    # Search within ~50m radius
+                    dlat = 50.0 / 111320.0
+                    dlon = 50.0 / (111320.0 * max(0.1, math.cos(math.radians(lat))))
+                    mask = (
+                        (las.x >= lon - dlon) & (las.x <= lon + dlon) &
+                        (las.y >= lat - dlat) & (las.y <= lat + dlat)
+                    )
+                    if np.sum(mask) == 0:
+                        continue
+
+                    xs = np.array(las.x)[mask]
+                    ys = np.array(las.y)[mask]
+                    zs = np.array(las.z)[mask]
+
+                    # Filter ground if available
+                    class_arr = getattr(las, 'classification', None)
+                    if class_arr is not None:
+                        cl = np.array(class_arr)[mask]
+                        if np.any(cl == 2):
+                            g_mask = (cl == 2)
+                            xs, ys, zs = xs[g_mask], ys[g_mask], zs[g_mask]
+
+                    # Metric distances
+                    dx_m = (xs - lon) * (111320.0 * math.cos(math.radians(lat)))
+                    dy_m = (ys - lat) * 111320.0
+                    dists = np.sqrt(dx_m**2 + dy_m**2)
+
+                    weights = 1.0 / np.maximum(0.2, dists**2)
+                    weighted_z = float(np.sum(weights * zs) / np.sum(weights))
+                    return float(round(weighted_z, 2)), len(zs)
+                except Exception as e:
+                    print(f"[LiDARProvider] Point lookup error in {fpath}: {e}")
+                    continue
         return None
 
     def get_elevation_grid(self, bounds: Dict[str, float], resolution: int = 128) -> Optional[Tuple[np.ndarray, Dict[str, Any]]]:
