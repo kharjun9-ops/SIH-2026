@@ -56,6 +56,10 @@ class LiDARService:
             "file_name": filename,
             "saved_file": safe_name,
             "point_count": point_count,
+            "point_density_sq_m": meta.get("point_density_sq_m", 0.0),
+            "point_spacing_m": meta.get("point_spacing_m", 1.0),
+            "has_ground_classification": meta.get("has_ground_classification", False),
+            "accuracy_statement": meta.get("accuracy_statement", "Accuracy depends on source survey."),
             "bounds": {
                 "min_lat": min_y,
                 "max_lat": max_y,

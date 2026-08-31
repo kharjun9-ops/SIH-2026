@@ -123,14 +123,34 @@ class LiDARProvider(ElevationProvider):
             grid_z_near = griddata(points, z_coords, (grid_x, grid_y), method='nearest')
             grid_z[nan_mask] = grid_z_near[nan_mask]
 
+        dx_m = max(1.0, (max_x - min_x) * 111320.0)
+        dy_m = max(1.0, (max_y - min_y) * 111320.0)
+        area_sq_m = max(1.0, dx_m * dy_m)
+        point_count = len(z_coords)
+        point_density = point_count / area_sq_m
+        est_spacing_m = math.sqrt(1.0 / max(1e-4, point_density))
+        has_ground_class = classifications is not None and np.any(classifications == 2)
+
         meta = {
             "source": self.get_source_name(),
+            "data_status": "REAL DATA",
+            "dataset_category": "DTM (Bare-Earth)" if mode == "dtm" else "DSM (Surface)",
+            "native_resolution": f"{est_spacing_m:.2f}m (Point Spacing)",
             "horizontal_resolution": self.get_resolution(),
+            "source_crs": "Projected UTM / WGS84",
+            "projected_crs": "Local Metric Coordinate Space (Meters)",
             "vertical_datum": self.get_vertical_datum(),
-            "elevation_type": "Bare-Earth DTM" if mode == "dtm" else "Digital Surface Model (DSM)",
-            "vertical_accuracy": "±0.15m (LiDAR Survey Grade)",
-            "point_count": len(z_coords),
-            "interpolation_method": "TIN / Linear Interpolation"
+            "source_vertical_datum": "NAVD88 / EGM96 Orthometric",
+            "output_vertical_datum": "Orthometric Meters above Geoid",
+            "elevation_type": "Bare-Earth DTM (Class 2 Ground Filtered)" if mode == "dtm" else "Digital Surface Model (DSM)",
+            "vertical_accuracy": "Survey Grade (Accuracy depends on source LiDAR survey specifications and sensor calibration)",
+            "point_count": point_count,
+            "point_density_sq_m": round(point_density, 3),
+            "point_spacing_m": round(est_spacing_m, 2),
+            "has_ground_classification": bool(has_ground_class),
+            "accuracy_statement": "Accuracy depends on the source LiDAR survey specifications, flight altitude, and calibration.",
+            "interpolation_method": "TIN / Delaunay Linear Triangulation Resampling",
+            "resolution_transparency_note": f"Rasterized at {resolution}x{resolution} grid spacing from {point_count:,} LiDAR pulses."
         }
         return grid_z.astype(np.float32).T, meta
 

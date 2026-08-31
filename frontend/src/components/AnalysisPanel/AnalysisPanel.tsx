@@ -108,81 +108,97 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
       </div>
 
-      {/* GIS Data Quality & Lineage Panel (Requirement #25) */}
+      {/* GIS Data Quality & Lineage Panel (Requirement #2, #4, #17, #20) */}
       <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-950 via-[#0c121e] to-slate-950 border border-cyan-500/30 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
             <Database className="w-4 h-4 text-cyan-400" />
-            <span>GIS DATA QUALITY & DEM LINEAGE</span>
+            <span>AUTHORITATIVE DATA QUALITY & GEODETIC LINEAGE</span>
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded-md">
-            Authoritative Dataset
-          </span>
+          
+          {/* Data Status Badge (Requirement #1, #2) */}
+          <div className="flex items-center gap-2">
+            {gisMetadata?.data_status === 'REAL DATA' ? (
+              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-500/60 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                REAL DATA
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/90 border border-amber-500/60 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Info className="w-3 h-3 text-amber-400" />
+                SYNTHETIC DEMO DATA
+              </span>
+            )}
+
+            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-2 py-0.5 rounded-md">
+              {gisMetadata?.dataset_category || 'DSM (Surface)'}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 text-xs font-mono">
           
           <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">DEM SOURCE</span>
+            <span className="text-[10px] text-slate-500 block">SOURCE DATASET</span>
             <strong className="text-slate-200 text-[11px] truncate block" title={gisMetadata?.source || providerUsed}>
               {gisMetadata?.source || providerUsed}
             </strong>
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">HORIZONTAL RES.</span>
+            <span className="text-[10px] text-slate-500 block">DATASET TYPE</span>
+            <strong className="text-cyan-300 text-[11px] truncate block">
+              {gisMetadata?.dataset_category || 'DSM (Surface Elevation)'}
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span className="text-[10px] text-slate-500 block">NATIVE SOURCE RES.</span>
             <strong className="text-cyan-300 text-[11px]">
-              {gisMetadata?.horizontal_resolution || '~30m (1 arc-second)'}
+              {gisMetadata?.native_resolution || '~30m (1 arc-sec)'}
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span className="text-[10px] text-slate-500 block">VISUALIZATION RES.</span>
+            <strong className="text-emerald-300 text-[11px]">
+              {gisMetadata?.visualization_resolution || `${(gisMetadata?.grid_spacing_x_m || 30).toFixed(1)} m`}
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span className="text-[10px] text-slate-500 block">MESH VERTEX GRID</span>
+            <strong className="text-slate-200 text-[11px]">
+              {gisMetadata?.mesh_resolution || `${gridResolution}x${gridResolution}`}
             </strong>
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
             <span className="text-[10px] text-slate-500 block">VERTICAL DATUM</span>
-            <strong className="text-slate-200 text-[11px]">
-              {gisMetadata?.vertical_datum || 'EGM96 Geoid (Meters)'}
+            <strong className="text-slate-200 text-[11px] truncate block" title={gisMetadata?.vertical_datum || 'EGM2008 / EGM96 Geoid'}>
+              {gisMetadata?.vertical_datum || 'EGM2008 / EGM96 Geoid'}
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
+            <span className="text-[10px] text-slate-500 block">HORIZONTAL CRS</span>
+            <strong className="text-slate-200 text-[10px] truncate block" title="WGS84 Equirectangular / Metric Projected">
+              {gisMetadata?.source_crs || 'EPSG:4326 (WGS84)'}
             </strong>
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
             <span className="text-[10px] text-slate-500 block">VERTICAL ACCURACY</span>
-            <strong className="text-amber-300 text-[11px]">
-              {gisMetadata?.vertical_accuracy || '±16m (90% linear error)'}
-            </strong>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">PROJECTION</span>
-            <strong className="text-slate-200 text-[10px] truncate block" title="Local Transverse Mercator (WGS84)">
-              Local Transverse Mercator
-            </strong>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">GRID CELL SPACING</span>
-            <strong className="text-emerald-300 text-[11px]">
-              {gisMetadata?.grid_spacing_x_m ? `Δx=${gisMetadata.grid_spacing_x_m}m, Δy=${gisMetadata.grid_spacing_y_m}m` : '30m × 30m'}
-            </strong>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">DATA VOIDS / NODATA</span>
-            <strong className="text-emerald-400 text-[11px]">
-              {gisMetadata?.data_voids_count || 0} voids (100% valid)
-            </strong>
-          </div>
-
-          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800">
-            <span className="text-[10px] text-slate-500 block">RESAMPLING METHOD</span>
-            <strong className="text-slate-300 text-[10px] truncate block">
-              {gisMetadata?.interpolation_method || 'Bilinear Interpolation'}
+            <strong className="text-amber-300 text-[10px] truncate block" title={gisMetadata?.vertical_accuracy || '±4m absolute (Copernicus Spec)'}>
+              {gisMetadata?.vertical_accuracy || '±4m absolute'}
             </strong>
           </div>
 
         </div>
 
-        <div className="text-[10px] text-slate-400 pt-1 leading-relaxed">
+        <div className="text-[10px] text-slate-400 pt-1 leading-relaxed bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
           <Info className="w-3.5 h-3.5 text-cyan-400 inline mr-1" />
-          <strong>Notice:</strong> Mesh density resampling provides smooth visualization geometry but does not create higher physical terrain accuracy than the source DEM resolution (~30m).
+          <strong>Resolution Transparency:</strong> {gisMetadata?.resolution_transparency_note || 'Visualization resolution is resampled from the native 30m source raster and does not represent field measurement accuracy.'}
         </div>
       </div>
 

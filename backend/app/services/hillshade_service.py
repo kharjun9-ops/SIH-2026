@@ -55,11 +55,12 @@ class HillshadeService:
         cell_size_x_m: float,
         cell_size_y_m: float,
         azimuth_deg: float = 315.0,
-        altitude_deg: float = 45.0
+        altitude_deg: float = 45.0,
+        intensity: float = 1.0
     ) -> str:
-        """Generates PNG texture of the hillshade relief."""
+        """Generates PNG texture of the hillshade relief with controllable relief intensity."""
         hs_arr = HillshadeService.compute_hillshade(
-            elevation_grid, cell_size_x_m, cell_size_y_m, azimuth_deg, altitude_deg
+            elevation_grid, cell_size_x_m, cell_size_y_m, azimuth_deg, altitude_deg, z_factor=intensity
         )
         img = Image.fromarray(hs_arr, mode='L')
         fname = f"hillshade_{uuid.uuid4().hex[:10]}.png"

@@ -11,6 +11,7 @@ from app.api.image import router as image_router
 from app.api.reconstruction import router as reconstruction_router
 from app.api.validation import router as validation_router
 from app.api.lidar import router as lidar_router
+from app.api.environment import router as environment_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,6 +41,7 @@ app.include_router(image_router, prefix=settings.API_V1_PREFIX)
 app.include_router(reconstruction_router, prefix=settings.API_V1_PREFIX)
 app.include_router(validation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(lidar_router, prefix=settings.API_V1_PREFIX)
+app.include_router(environment_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 def root():
@@ -56,7 +58,8 @@ def root():
             "lidar_process": "/api/lidar/process",
             "image_analyze": "/api/image/analyze",
             "measure": "/api/terrain/measure",
-            "export_3d": "/api/terrain/export"
+            "export_3d": "/api/terrain/export",
+            "environment_layers": "/api/environment/layers"
         }
     }
 

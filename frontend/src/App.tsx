@@ -17,23 +17,24 @@ import { api } from './services/api';
 export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('landing');
   const [samples, setSamples] = useState<SampleRegion[]>([]);
-  const [selectedSample, setSelectedSample] = useState<string>('mount_fuji');
+  const [selectedSample, setSelectedSample] = useState<string>('bengaluru_pilot');
   
-  // Default coordinates: Mount Fuji
-  const [centerLat, setCenterLat] = useState<number>(35.3606);
-  const [centerLon, setCenterLon] = useState<number>(138.7274);
-  const [radiusMeters, setRadiusMeters] = useState<number>(6000);
+  // Default coordinates: Bengaluru Central Pilot (12.9716, 77.5946)
+  const [centerLat, setCenterLat] = useState<number>(12.9716);
+  const [centerLon, setCenterLon] = useState<number>(77.5946);
+  const [radiusMeters, setRadiusMeters] = useState<number>(1500);
   
   const [bounds, setBounds] = useState<LatLonBounds>({
-    min_lat: 35.3067,
-    max_lat: 35.4145,
-    min_lon: 138.6612,
-    max_lon: 138.7936,
-    center_lat: 35.3606,
-    center_lon: 138.7274,
-    radius_meters: 6000
+    min_lat: 12.9581,
+    max_lat: 12.9851,
+    min_lon: 77.5808,
+    max_lon: 77.6084,
+    center_lat: 12.9716,
+    center_lon: 77.5946,
+    radius_meters: 1500
   });
 
+  const [dataMode, setDataMode] = useState<'real' | 'demo'>('real');
   const [terrainData, setTerrainData] = useState<TerrainReconstructResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [imageAnalysis, setImageAnalysis] = useState<ImageAnalysisResponse | null>(null);
@@ -45,8 +46,14 @@ export const App: React.FC = () => {
         const { samples: sampleList } = await api.fetchSamples();
         setSamples(sampleList);
         
-        // Auto-reconstruct initial default region (Mount Fuji) for instant live demo
-        handleReconstruct({ sample_id: 'mount_fuji' });
+        // Auto-reconstruct initial default region: Bengaluru Central Pilot with real data mode
+        handleReconstruct({ 
+          latitude: 12.9716, 
+          longitude: 77.5946, 
+          radius: 1500, 
+          data_mode: 'real',
+          sample_id: 'bengaluru_pilot' 
+        });
       } catch (err) {
         console.error('Failed to fetch sample regions:', err);
       }
@@ -86,7 +93,13 @@ export const App: React.FC = () => {
       setRadiusMeters(matching.radius_meters);
       setBounds(newBounds);
 
-      handleReconstruct({ sample_id: sampleId });
+      handleReconstruct({ 
+        sample_id: sampleId,
+        latitude: matching.center_lat,
+        longitude: matching.center_lon,
+        radius: matching.radius_meters,
+        data_mode: dataMode
+      });
     }
   };
 
@@ -94,13 +107,15 @@ export const App: React.FC = () => {
   const handleReconstruct = async (overrideParams?: any) => {
     setIsLoading(true);
     try {
-      const params = overrideParams || {
+      const params = {
         latitude: centerLat,
         longitude: centerLon,
         radius: radiusMeters,
         bounds: bounds,
         grid_resolution: 128,
         sample_id: selectedSample || undefined,
+        data_mode: dataMode,
+        ...overrideParams
       };
 
       const res = await api.reconstructTerrain(params);
@@ -154,9 +169,14 @@ export const App: React.FC = () => {
             radiusMeters={radiusMeters}
             onLocationChange={handleLocationChange}
             bounds={bounds}
-            onReconstruct={() => handleReconstruct()}
+            onReconstruct={(params) => handleReconstruct(params)}
             isLoading={isLoading}
             terrainData={terrainData}
+            dataMode={dataMode}
+            onDataModeChange={(mode) => {
+              setDataMode(mode);
+              handleReconstruct({ data_mode: mode });
+            }}
             onImageAnalyzed={setImageAnalysis}
             onNavigateToStudio={() => setCurrentPage('viewer')}
           />

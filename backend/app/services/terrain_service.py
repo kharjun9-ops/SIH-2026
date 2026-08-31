@@ -194,6 +194,10 @@ class TerrainService:
         lats = np.linspace(lat_a, lat_b, samples)
         lons = np.linspace(lon_a, lon_b, samples)
         profile = []
+        total_ascent = 0.0
+        total_descent = 0.0
+        surface_dist = 0.0
+        elevations = []
 
         for i, (plat, plon) in enumerate(zip(lats, lons)):
             insp = TerrainService.inspect_point(plat, plon, elevation_grid, slope_grid, aspect_grid, bounds)
@@ -205,14 +209,36 @@ class TerrainService:
                 longitude=insp.longitude,
                 slope_deg=insp.slope
             ))
+            elevations.append(insp.elevation)
+
+            if i > 0:
+                prev_e = profile[i - 1].elevation_m
+                curr_e = insp.elevation
+                de = curr_e - prev_e
+                step_dx = dist_m / max(1, samples - 1)
+                surface_dist += math.sqrt(step_dx**2 + de**2)
+                if de > 0:
+                    total_ascent += de
+                else:
+                    total_descent += abs(de)
+
+        min_e = min(elevations) if elevations else pt_a.elevation
+        max_e = max(elevations) if elevations else pt_b.elevation
+        avg_grad = ((total_ascent + total_descent) / max(1.0, dist_m)) * 100.0
 
         return TwoPointMeasurementResponse(
             point_a=pt_a,
             point_b=pt_b,
             height_difference=height_diff,
             distance_meters=round(dist_m, 2),
+            surface_distance_m=round(surface_dist, 2),
             slope_percent=slope_pct,
             slope_degrees=slope_deg,
+            average_gradient_pct=round(avg_grad, 2),
+            total_ascent_m=round(total_ascent, 1),
+            total_descent_m=round(total_descent, 1),
+            min_elevation_m=round(min_e, 2),
+            max_elevation_m=round(max_e, 2),
             comparison_text=comp_text,
             elevation_profile=profile
         )

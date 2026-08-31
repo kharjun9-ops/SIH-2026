@@ -29,6 +29,7 @@ import {
 } from '../../types';
 import { TerrainMesh } from './TerrainMesh';
 import { MeasurementPins } from './MeasurementPins';
+import { EnvironmentManager } from '../Environment/EnvironmentManager';
 import { api } from '../../services/api';
 
 interface TerrainCanvasProps {
@@ -60,6 +61,12 @@ interface TerrainCanvasProps {
   onSetPointValidation?: (val: PointValidation | null) => void;
   onOpenAccuracyModal?: () => void;
   onOpenProfileModal?: () => void;
+  environmentData?: any;
+  layerVisibility?: { buildings: boolean; roads: boolean; water: boolean; landmarks: boolean };
+  colorBySource?: boolean;
+  onBuildingClick?: (building: any) => void;
+  onRoadClick?: (road: any) => void;
+  onWaterClick?: (water: any) => void;
 }
 
 // 3D North Compass Indicator Widget Component
@@ -143,6 +150,12 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   onSetPointValidation,
   onOpenAccuracyModal,
   onOpenProfileModal,
+  environmentData,
+  layerVisibility,
+  colorBySource = true,
+  onBuildingClick,
+  onRoadClick,
+  onWaterClick,
 }) => {
   const controlsRef = useRef<any>(null);
   const [selectedPointPos, setSelectedPointPos] = useState<THREE.Vector3 | null>(null);
@@ -424,6 +437,20 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             showContours={showContours}
             onPointClick={handlePointClick}
           />
+
+          {/* Environment Reconstruction Layers (Buildings, Roads, Water) */}
+          {environmentData && layerVisibility && (
+            <EnvironmentManager
+              environmentData={environmentData}
+              layerVisibility={layerVisibility}
+              exaggeration={exaggeration}
+              minElevation={terrainData.stats.min_elevation}
+              colorBySource={colorBySource}
+              onBuildingClick={onBuildingClick}
+              onRoadClick={onRoadClick}
+              onWaterClick={onWaterClick}
+            />
+          )}
 
           {/* 3D North Arrow Indicator */}
           <NorthIndicator terrainWidthM={maxDimension} />

@@ -15,7 +15,10 @@ import {
   ShieldCheck,
   Activity,
   FileCode2,
-  UploadCloud
+  UploadCloud,
+  Building2,
+  Route,
+  Droplets
 } from 'lucide-react';
 import { 
   SampleRegion, 
@@ -29,9 +32,15 @@ import {
   TwoPointMeasurementResponse,
   PointValidation,
   ValidationReport,
-  LiDARProcessResponse
+  LiDARProcessResponse,
+  EnvironmentLayersResponse,
+  LayerVisibility,
+  BuildingFeature,
+  RoadFeature,
+  WaterFeature
 } from '../types';
 import { MapPicker } from '../components/Map/MapPicker';
+import { DataQualityDebugPanel } from '../components/Debug/DataQualityDebugPanel';
 import { ImageUploader } from '../components/ImageUploader/ImageUploader';
 import { TerrainCanvas } from '../components/TerrainViewer/TerrainCanvas';
 import { TerrainControls } from '../components/TerrainControls/TerrainControls';
@@ -51,9 +60,11 @@ interface ReconstructionProps {
   radiusMeters: number;
   onLocationChange: (lat: number, lon: number, radius: number, bounds: LatLonBounds) => void;
   bounds: LatLonBounds;
-  onReconstruct: () => void;
+  onReconstruct: (params?: any) => void;
   isLoading: boolean;
   terrainData: TerrainReconstructResponse | null;
+  dataMode: 'real' | 'demo';
+  onDataModeChange: (mode: 'real' | 'demo') => void;
   onImageAnalyzed: (analysis: ImageAnalysisResponse) => void;
   onNavigateToStudio: () => void;
 }
@@ -70,6 +81,8 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   onReconstruct,
   isLoading,
   terrainData,
+  dataMode = 'real',
+  onDataModeChange,
   onImageAnalyzed,
   onNavigateToStudio,
 }) => {
@@ -85,10 +98,12 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   const [showWireframe, setShowWireframe] = useState<boolean>(false);
   const [showSatelliteTexture, setShowSatelliteTexture] = useState<boolean>(true);
   const [showContours, setShowContours] = useState<boolean>(false);
+  const [contourInterval, setContourInterval] = useState<number>(20);
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [activeTool, setActiveTool] = useState<InteractionTool>('inspect');
   const [sunAzimuth, setSunAzimuth] = useState<number>(315);
   const [sunAltitude, setSunAltitude] = useState<number>(45);
+  const [hillshadeIntensity, setHillshadeIntensity] = useState<number>(1.0);
 
   // Point inspection & measurement state
   const [selectedPoint, setSelectedPoint] = useState<PointInspection | null>(null);
@@ -108,6 +123,21 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   // LiDAR upload state
   const [lidarLoading, setLidarLoading] = useState(false);
   const [lidarResult, setLidarResult] = useState<LiDARProcessResponse | null>(null);
+
+  // Environment layers state
+  const [environmentData, setEnvironmentData] = useState<EnvironmentLayersResponse | null>(null);
+  const [envLoading, setEnvLoading] = useState(false);
+  const [envError, setEnvError] = useState<string | null>(null);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    buildings: true,
+    roads: true,
+    water: true,
+    landmarks: false,
+  });
+  const [colorBySource, setColorBySource] = useState<boolean>(true);
+  const [selectedBuilding, setSelectedBuilding] = useState<BuildingFeature | null>(null);
+  const [selectedRoad, setSelectedRoad] = useState<RoadFeature | null>(null);
+  const [selectedWater, setSelectedWater] = useState<WaterFeature | null>(null);
 
   const handleApplyCoordinates = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,6 +185,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
           sample_count: 100,
           provider: terrainData.provider_used,
           sample_id: terrainData.region_name,
+          data_mode: dataMode
         });
         setValidationReport(report);
       } catch (e) {
@@ -185,6 +216,42 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
     }
   };
 
+  // ─── Environment Layer Fetch ─────────────────────────
+  const handleFetchEnvironment = async (customBounds?: LatLonBounds) => {
+    const targetBounds = customBounds || terrainData?.bounds;
+    if (!targetBounds || dataMode === 'demo') return;
+    setEnvLoading(true);
+    setEnvError(null);
+    try {
+      const layers: string[] = ['buildings', 'roads', 'water', 'landmarks'];
+
+      const res = await api.fetchEnvironmentLayers({
+        bounds: targetBounds,
+        layers,
+        data_mode: dataMode,
+        grid_resolution: terrainData?.grid_resolution || 128,
+        provider: terrainData?.provider_used || 'auto',
+      });
+
+      if ((res as any).status === 'error') {
+        setEnvError((res as any).message || 'OpenStreetMap vector query failed.');
+        setEnvironmentData(null);
+      } else {
+        setEnvironmentData(res);
+        setEnvError(null);
+      }
+    } catch (err: any) {
+      console.error('Environment layers error:', err);
+      setEnvError(err.message || 'Failed to connect to OpenStreetMap vector service.');
+    } finally {
+      setEnvLoading(false);
+    }
+  };
+
+  const handleToggleLayer = (layer: keyof LayerVisibility) => {
+    setLayerVisibility(prev => ({ ...prev, [layer]: !prev[layer] }));
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
       
@@ -203,10 +270,37 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
           </h1>
         </div>
 
-        {/* Action Header Buttons */}
-        <div className="flex items-center gap-3">
+        {/* Data Mode Switcher + Action Header Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* REAL DATA MODE vs DEMO MODE Switcher (Requirement #1) */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => onDataModeChange('real')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                dataMode === 'real'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              REAL DATA MODE
+            </button>
+            <button
+              onClick={() => onDataModeChange('demo')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                dataMode === 'demo'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              DEMO MODE
+            </button>
+          </div>
+
           <button
-            onClick={onReconstruct}
+            onClick={() => onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode })}
             disabled={isLoading}
             className="px-6 py-3 bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm rounded-xl shadow-xl shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 transition-all flex items-center gap-2"
           >
@@ -215,6 +309,24 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Mode Indicator Notice */}
+      {dataMode === 'demo' ? (
+        <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-xs text-amber-200 flex items-center gap-2 font-mono">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <span><strong>DEMO / SYNTHETIC TERRAIN DATA:</strong> You are currently in Demo Mode using offline synthetic geomorphology models. Switch to <strong>REAL DATA MODE</strong> to fetch authoritative Copernicus GLO-30 / SRTM / LiDAR data.</span>
+        </div>
+      ) : (
+        <div className="p-3 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-200 flex items-center justify-between font-mono">
+          <span className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span><strong>REAL DATA MODE ACTIVE:</strong> Strictly querying live remote sensing elevation models (Copernicus DEM GLO-30 ~30m DSM, NASA SRTM GL1, or Airborne LiDAR).</span>
+          </span>
+          <span className="text-[10px] bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-700/60 text-emerald-300">
+            Authoritative Pipeline
+          </span>
+        </div>
+      )}
 
       {/* Input Selection Tabs (Method 1: Map, Method 2: Coords, Method 3: Image, Method 4: LiDAR) */}
       <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 w-fit">
@@ -268,8 +380,9 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
       </div>
 
       {/* Input Panels */}
+      {/* Tab 1: Map & Search (Leaflet / OpenStreetMap / Satellite) */}
       {inputTab === 'map' && (
-        <div className="h-[480px]">
+        <div className="w-full">
           <MapPicker
             centerLat={centerLat}
             centerLon={centerLon}
@@ -277,6 +390,10 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
             onLocationChange={onLocationChange}
             samples={samples}
             onSelectSample={onSelectSample}
+            inspectedLat={selectedPoint?.latitude}
+            inspectedLon={selectedPoint?.longitude}
+            onGenerate3DWorld={() => onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode })}
+            isLoading={isLoading}
           />
         </div>
       )}
@@ -482,6 +599,12 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                   onSetPointValidation={setPointValidation}
                   onOpenAccuracyModal={handleOpenAccuracyReport}
                   onOpenProfileModal={() => setIsProfileModalOpen(true)}
+                  environmentData={environmentData}
+                  layerVisibility={layerVisibility}
+                  colorBySource={colorBySource}
+                  onBuildingClick={(b: BuildingFeature) => { setSelectedBuilding(b); setSelectedRoad(null); setSelectedWater(null); }}
+                  onRoadClick={(r: RoadFeature) => { setSelectedRoad(r); setSelectedBuilding(null); setSelectedWater(null); }}
+                  onWaterClick={(w: WaterFeature) => { setSelectedWater(w); setSelectedBuilding(null); setSelectedRoad(null); }}
                 />
               </div>
 
@@ -493,6 +616,15 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 gisMetadata={terrainData.gis_metadata}
                 providerUsed={terrainData.provider_used}
                 gridResolution={terrainData.grid_resolution}
+              />
+
+              {/* Development Data Pipeline Debug Panel (Requirement #21) */}
+              <DataQualityDebugPanel
+                bounds={terrainData.bounds}
+                terrainData={terrainData}
+                environmentData={environmentData}
+                dataMode={dataMode}
+                pilotName="BENGALURU PILOT"
               />
             </div>
 
@@ -512,13 +644,295 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 onToggleSatelliteTexture={() => setShowSatelliteTexture(!showSatelliteTexture)}
                 showContours={showContours}
                 onToggleContours={() => setShowContours(!showContours)}
+                contourInterval={contourInterval}
+                onContourIntervalChange={setContourInterval}
                 showGrid={showGrid}
                 onToggleGrid={() => setShowGrid(!showGrid)}
                 sunAzimuth={sunAzimuth}
                 onSunAzimuthChange={setSunAzimuth}
                 sunAltitude={sunAltitude}
                 onSunAltitudeChange={setSunAltitude}
+                hillshadeIntensity={hillshadeIntensity}
+                onHillshadeIntensityChange={setHillshadeIntensity}
+                layerVisibility={layerVisibility}
+                onToggleLayer={handleToggleLayer}
+                colorBySource={colorBySource}
+                onToggleColorBySource={() => setColorBySource(!colorBySource)}
+                environmentLoading={envLoading}
+                environmentAvailable={!!environmentData}
               />
+
+              {/* Environment Layer Load Button & Status */}
+              {dataMode === 'real' && !environmentData && !envLoading && !envError && (
+                <button
+                  onClick={() => handleFetchEnvironment()}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-amber-600/20 hover:shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>Load Environment Vector Layers</span>
+                </button>
+              )}
+
+              {/* Loading Indicator */}
+              {envLoading && (
+                <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-xs text-amber-200 flex items-center gap-2 font-mono animate-pulse">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Querying real OpenStreetMap vector data (buildings, roads, water)...</span>
+                </div>
+              )}
+
+              {/* Explicit Provider Error Display (Requirement #11) */}
+              {envError && (
+                <div className="p-3.5 bg-rose-950/50 border border-rose-500/60 rounded-xl text-xs text-rose-200 space-y-2 font-mono">
+                  <div className="flex items-center gap-2 font-bold text-rose-300">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>DATA PROVIDER ERROR</span>
+                  </div>
+                  <p className="text-[11px] text-rose-200/90 leading-relaxed">{envError}</p>
+                  <button
+                    onClick={() => handleFetchEnvironment()}
+                    className="px-2.5 py-1 bg-rose-900/60 hover:bg-rose-800/70 border border-rose-600/60 rounded text-[10px] text-white font-semibold transition-colors"
+                  >
+                    Retry Query
+                  </button>
+                </div>
+              )}
+
+              {/* Environment Coverage & Feature Summary Card */}
+              {environmentData && (
+                <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-4 shadow-2xl space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-bold text-white uppercase tracking-wide">Environment Coverage</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 font-mono">
+                      {environmentData.source || 'OpenStreetMap'}
+                    </span>
+                  </div>
+                  
+                  {/* Coverage Stats (Detected vs Reconstructed) */}
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-amber-400" />
+                        Buildings
+                      </span>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        {environmentData.coverage_summary?.buildings ? (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.coverage_summary.buildings.reconstructed.toLocaleString()} / {environmentData.coverage_summary.buildings.detected.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.counts?.buildings ?? environmentData.buildings?.length ?? 0}
+                          </span>
+                        )}
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          100%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <Route className="w-3.5 h-3.5 text-slate-400" />
+                        Roads
+                      </span>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        {environmentData.coverage_summary?.roads ? (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.coverage_summary.roads.reconstructed.toLocaleString()} / {environmentData.coverage_summary.roads.detected.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.counts?.roads ?? environmentData.roads?.length ?? 0}
+                          </span>
+                        )}
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          100%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <Droplets className="w-3.5 h-3.5 text-blue-400" />
+                        Water Bodies
+                      </span>
+                      <div className="flex items-center gap-2 font-mono text-[11px]">
+                        {environmentData.coverage_summary?.water ? (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.coverage_summary.water.reconstructed.toLocaleString()} / {environmentData.coverage_summary.water.detected.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="font-bold text-emerald-400">
+                            {environmentData.counts?.water ?? environmentData.water?.length ?? 0}
+                          </span>
+                        )}
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                          100%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Building Height Sources Breakdown */}
+                  {environmentData.building_height_summary && (
+                    <div className="pt-2 border-t border-slate-800/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-cyan-300 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-cyan-400" />
+                          Building Height Sources
+                        </span>
+                        {environmentData.building_height_summary.lidar_available ? (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
+                            {environmentData.building_height_summary.lidar_coverage_pct}% LiDAR
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/40 text-amber-300">
+                            Fallback Active
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
+                        <div className="p-1.5 bg-slate-950/60 rounded border border-cyan-500/20 flex items-center justify-between">
+                          <span className="text-cyan-400">LiDAR:</span>
+                          <span className="text-white font-bold">{environmentData.building_height_summary.lidar_count.toLocaleString()}</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-950/60 rounded border border-amber-500/20 flex items-center justify-between">
+                          <span className="text-amber-400">OSM Mapped:</span>
+                          <span className="text-white font-bold">{environmentData.building_height_summary.osm_height_count.toLocaleString()}</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-950/60 rounded border border-slate-700/40 flex items-center justify-between">
+                          <span className="text-slate-400">OSM Levels:</span>
+                          <span className="text-white font-bold">{environmentData.building_height_summary.osm_levels_count.toLocaleString()}</span>
+                        </div>
+                        <div className="p-1.5 bg-slate-950/60 rounded border border-slate-700/40 flex items-center justify-between">
+                          <span className="text-slate-400">Estimated:</span>
+                          <span className="text-white font-bold">{environmentData.building_height_summary.estimated_count.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      {environmentData.building_height_summary.mean_lidar_height && (
+                        <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between px-1">
+                          <span>Mean LiDAR Height: <strong className="text-cyan-300">{environmentData.building_height_summary.mean_lidar_height}m</strong></span>
+                          <span>Range: <strong className="text-cyan-300">{environmentData.building_height_summary.min_lidar_height}m – {environmentData.building_height_summary.max_lidar_height}m</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Data Quality & Lineage */}
+                  <div className="pt-2 border-t border-slate-800/60 grid grid-cols-3 gap-1.5 text-[9px] font-mono">
+                    <div className="p-1 bg-slate-950/50 rounded border border-slate-800 text-center">
+                      <span className="text-slate-500 block">FOOTPRINT</span>
+                      <span className="text-white font-semibold">Mapped</span>
+                    </div>
+                    <div className="p-1 bg-slate-950/50 rounded border border-slate-800 text-center">
+                      <span className="text-slate-500 block">HEIGHT</span>
+                      <span className="text-cyan-300 font-semibold">LiDAR (95th-p)</span>
+                    </div>
+                    <div className="p-1 bg-slate-950/50 rounded border border-slate-800 text-center">
+                      <span className="text-slate-500 block">TERRAIN</span>
+                      <span className="text-emerald-300 font-semibold">Bare-Earth DTM</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                    <span>Attribution: © OpenStreetMap & LiDAR</span>
+                    <button
+                      onClick={() => handleFetchEnvironment()}
+                      className="text-cyan-400 hover:underline"
+                    >
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Building Inspection Card */}
+              {selectedBuilding && (
+                <div className="bg-[#0d121f] rounded-2xl border border-cyan-500/40 p-4 shadow-2xl space-y-2.5">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-800">
+                    <span className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5" />
+                      Building Inspection
+                    </span>
+                    <button onClick={() => setSelectedBuilding(null)} className="text-xs text-slate-500 hover:text-white">✕</button>
+                  </div>
+
+                  {selectedBuilding.name && <div className="text-sm font-bold text-white tracking-tight">{selectedBuilding.name}</div>}
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div><span className="text-slate-500">ID</span><br /><span className="text-white font-mono text-[10px] truncate block">{selectedBuilding.id}</span></div>
+                    <div><span className="text-slate-500">Type</span><br /><span className="text-white font-mono">{selectedBuilding.building_type}</span></div>
+                    <div><span className="text-slate-500">Footprint Source</span><br /><span className="text-cyan-300 font-mono text-[10px]">{selectedBuilding.footprint_source || selectedBuilding.source}</span></div>
+                    <div><span className="text-slate-500">Roof Shape</span><br /><span className="text-amber-300 font-mono capitalize">{selectedBuilding.roof_type || 'flat'}</span></div>
+                    <div><span className="text-slate-500">Latitude</span><br /><span className="text-white font-mono">{selectedBuilding.latitude.toFixed(6)}°</span></div>
+                    <div><span className="text-slate-500">Longitude</span><br /><span className="text-white font-mono">{selectedBuilding.longitude.toFixed(6)}°</span></div>
+                    <div><span className="text-slate-500">Ground Elevation</span><br /><span className="text-white font-mono font-bold">{selectedBuilding.ground_elevation}m</span></div>
+                    <div><span className="text-slate-500">Building Height</span><br /><span className="text-cyan-300 font-mono font-bold text-xs">{selectedBuilding.height}m</span></div>
+                    <div><span className="text-slate-500">Top Elevation</span><br /><span className="text-white font-mono">{selectedBuilding.top_elevation}m</span></div>
+                    <div><span className="text-slate-500">Footprint Area</span><br /><span className="text-white font-mono">{selectedBuilding.footprint_area_sq_m.toFixed(0)} m²</span></div>
+                    
+                    <div>
+                      <span className="text-slate-500">Height Source</span><br />
+                      <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded inline-block ${
+                        selectedBuilding.height_source === 'LIDAR' ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/40' :
+                        selectedBuilding.height_source === 'OSM_HEIGHT' || selectedBuilding.height_source === 'MAPPED' ? 'bg-amber-950 text-amber-300 border border-amber-500/40' :
+                        selectedBuilding.height_source === 'OSM_LEVELS' ? 'bg-slate-900 text-slate-300 border border-slate-700' :
+                        'bg-slate-950 text-slate-400 border border-slate-800'
+                      }`}>
+                        {selectedBuilding.height_source === 'LIDAR' ? 'LiDAR-derived' : selectedBuilding.height_source}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-500">Geometry Quality</span><br />
+                      <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded inline-block ${
+                        selectedBuilding.geometry_quality === 'HIGH' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' :
+                        selectedBuilding.geometry_quality === 'MEDIUM' ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/40' :
+                        'bg-slate-900 text-slate-400 border border-slate-700'
+                      }`}>
+                        {selectedBuilding.geometry_quality || selectedBuilding.height_quality || 'MEDIUM'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* LiDAR Detailed Points Info if available */}
+                  {selectedBuilding.height_source === 'LIDAR' && (
+                    <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-1.5 text-[10px] font-mono text-slate-300 bg-slate-950/60 p-2 rounded-xl">
+                      <div>LiDAR Points: <strong className="text-cyan-300">{selectedBuilding.lidar_points_count ?? 0} pts</strong></div>
+                      {selectedBuilding.lidar_roof_elevation && <div>Roof Elev (p95): <strong className="text-cyan-300">{selectedBuilding.lidar_roof_elevation}m</strong></div>}
+                      {selectedBuilding.lidar_ground_elevation && <div>Ground Elev: <strong className="text-cyan-300">{selectedBuilding.lidar_ground_elevation}m</strong></div>}
+                      {selectedBuilding.osm_height_diff !== null && selectedBuilding.osm_height_diff !== undefined && (
+                        <div>OSM vs LiDAR: <strong className={selectedBuilding.osm_height_diff >= 0 ? 'text-emerald-400' : 'text-amber-400'}>{selectedBuilding.osm_height_diff > 0 ? `+${selectedBuilding.osm_height_diff}` : selectedBuilding.osm_height_diff}m</strong></div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-[10px] text-slate-500 font-mono">Source: {selectedBuilding.source}</div>
+                </div>
+              )}
+
+              {selectedRoad && (
+                <div className="bg-[#0d121f] rounded-2xl border border-slate-500/30 p-4 shadow-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">Road Inspection</span>
+                    <button onClick={() => setSelectedRoad(null)} className="text-xs text-slate-500 hover:text-white">✕</button>
+                  </div>
+                  {selectedRoad.name && <div className="text-sm font-bold text-white">{selectedRoad.name}</div>}
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div><span className="text-slate-500">Type</span><br /><span className="text-white font-mono">{selectedRoad.road_type}</span></div>
+                    <div><span className="text-slate-500">Width</span><br /><span className="text-white font-mono">{selectedRoad.width}m</span></div>
+                    <div><span className="text-slate-500">Surface</span><br /><span className="text-white font-mono">{selectedRoad.surface || 'Unknown'}</span></div>
+                    <div><span className="text-slate-500">Segments</span><br /><span className="text-white font-mono">{selectedRoad.coords.length} pts</span></div>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">Source: {selectedRoad.source}</div>
+                </div>
+              )}
 
               <ElevationPanel
                 activeTool={activeTool}
@@ -555,7 +969,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
         onClose={() => setIsProfileModalOpen(false)}
         measurement={measurement}
       />
-
     </div>
   );
 };

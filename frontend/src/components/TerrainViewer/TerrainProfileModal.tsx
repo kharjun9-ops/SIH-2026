@@ -88,33 +88,47 @@ export const TerrainProfileModal: React.FC<TerrainProfileModalProps> = ({
           </button>
         </div>
 
-        {/* 4 Profile Metric Cards */}
-        <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950/60 border-b border-slate-800/80">
+        {/* 6 Profile Metric Cards (Requirement #14) */}
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 bg-slate-950/60 border-b border-slate-800/80">
           
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-            <span className="text-[10px] text-slate-500 font-mono block">TOTAL DISTANCE</span>
-            <strong className="text-white text-lg font-mono">
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[10px] text-slate-500 font-mono block">HORIZ. DISTANCE</span>
+            <strong className="text-white text-base font-mono">
               {(totalDist / 1000).toFixed(2)} <span className="text-xs text-slate-400">km</span>
             </strong>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-            <span className="text-[10px] text-slate-500 font-mono block">ELEVATION GAIN</span>
-            <strong className="text-emerald-400 text-lg font-mono flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" /> +{totalGain.toFixed(1)} m
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[10px] text-slate-500 font-mono block">SURFACE DISTANCE</span>
+            <strong className="text-cyan-300 text-base font-mono">
+              {((measurement.surface_distance_m || totalDist) / 1000).toFixed(2)} <span className="text-xs text-cyan-400">km</span>
             </strong>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-            <span className="text-[10px] text-slate-500 font-mono block">ELEVATION LOSS</span>
-            <strong className="text-rose-400 text-lg font-mono flex items-center gap-1">
-              <TrendingDown className="w-4 h-4" /> -{totalLoss.toFixed(1)} m
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[10px] text-slate-500 font-mono block">TOTAL ASCENT</span>
+            <strong className="text-emerald-400 text-base font-mono flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5" /> +{(measurement.total_ascent_m || totalGain).toFixed(1)}m
             </strong>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[10px] text-slate-500 font-mono block">TOTAL DESCENT</span>
+            <strong className="text-rose-400 text-base font-mono flex items-center gap-1">
+              <TrendingDown className="w-3.5 h-3.5" /> -{(measurement.total_descent_m || totalLoss).toFixed(1)}m
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[10px] text-slate-500 font-mono block">MIN / MAX ELEV.</span>
+            <strong className="text-slate-200 text-xs font-mono block truncate">
+              {minElev.toFixed(0)}m &mdash; {maxElev.toFixed(0)}m
+            </strong>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
             <span className="text-[10px] text-slate-500 font-mono block">AVERAGE GRADE</span>
-            <strong className="text-cyan-300 text-lg font-mono">
+            <strong className="text-amber-300 text-base font-mono">
               {measurement.slope_percent}% ({measurement.slope_degrees}°)
             </strong>
           </div>

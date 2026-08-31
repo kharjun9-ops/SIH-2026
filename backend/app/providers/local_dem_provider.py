@@ -96,14 +96,27 @@ class LocalDEMProvider(ElevationProvider):
                     zoom_factors = (resolution / data.shape[0], resolution / data.shape[1])
                     data = zoom(data, zoom_factors, order=1)
 
+                fname = os.path.basename(tif_path)
+                is_demo_preset = fname in [
+                    "mount_fuji.tif", "grand_canyon.tif", "mount_everest.tif", "nandi_hills.tif", "western_ghats.tif"
+                ]
+
                 meta = {
-                    "source": f"Local GeoTIFF ({os.path.basename(tif_path)})",
+                    "source": f"Synthetic Demo GeoTIFF ({fname})" if is_demo_preset else f"Authoritative Local GeoTIFF ({fname})",
+                    "data_status": "SYNTHETIC DEMO DATA" if is_demo_preset else "REAL DATA",
+                    "dataset_category": "DEMO / Synthetic DTM" if is_demo_preset else "Bare-Earth DTM (Local Survey)",
+                    "native_resolution": "256x256 Raster Matrix",
                     "horizontal_resolution": self.get_resolution(),
+                    "source_crs": "EPSG:4326 (WGS84 Lat/Lon)",
+                    "projected_crs": "Local Transverse Equirectangular Metric Plane",
                     "vertical_datum": self.get_vertical_datum(),
-                    "elevation_type": self.get_elevation_type(),
-                    "vertical_accuracy": "Calibrated Survey Precision",
+                    "source_vertical_datum": "EGM96 / Synthetic Geoid",
+                    "output_vertical_datum": "Meters above Base",
+                    "elevation_type": "Synthetic Model" if is_demo_preset else "Bare-Earth DTM",
+                    "vertical_accuracy": "Mathematical Model (Synthetic)" if is_demo_preset else "Calibrated Survey Precision",
                     "data_voids": int(np.sum(mask)),
-                    "interpolation_method": "Bilinear Resampling"
+                    "interpolation_method": "Bilinear Resampling",
+                    "resolution_transparency_note": "DEMO MODE: Synthetic geomorphology used for offline exploration." if is_demo_preset else "Resampled from local survey raster."
                 }
                 return data.astype(np.float32), meta
         except Exception as e:

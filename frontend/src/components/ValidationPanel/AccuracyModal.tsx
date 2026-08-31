@@ -42,10 +42,10 @@ export const AccuracyModal: React.FC<AccuracyModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-base text-white tracking-tight">
-                Statistical Accuracy & Data Lineage Report
+                Mesh-to-Source Raster Fidelity Validation
               </h3>
               <p className="text-xs text-slate-400">
-                Rigorous statistical evaluation comparing raw source DEM raster against resampled 3D mesh
+                Rigorous statistical evaluation comparing raw source DEM raster against resampled 3D mesh (Validates raster preservation, not field survey)
               </p>
             </div>
           </div>

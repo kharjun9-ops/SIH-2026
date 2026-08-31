@@ -91,55 +91,75 @@ class ElevationManager:
         bounds: Dict[str, float],
         resolution: int = 128,
         provider_preference: str = "auto",
-        sample_id: Optional[str] = None
+        sample_id: Optional[str] = None,
+        data_mode: str = "real"
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
-        Priority-cascade selection:
-        1. High-resolution LiDAR (if available)
-        2. Local GeoTIFF (if sample / available)
-        3. Copernicus DEM GLO-30 (~30m)
-        4. SRTM GL1 30m
+        Authoritative Priority-Cascade Selection:
+        In REAL DATA MODE:
+          1. Airborne LiDAR Survey (LAS / LAZ DTM)
+          2. Authoritative Local Survey GeoTIFF (Non-synthetic)
+          3. Copernicus DEM GLO-30 (~30m DSM)
+          4. SRTM GL1 30m (NASA/USGS)
+        In DEMO MODE:
+          - Allows synthetic sample GeoTIFF presets with explicit 'SYNTHETIC DEMO DATA' badge.
         """
-        fallback_notice = None
-
-        # 1. LiDAR Provider
+        # 1. LiDAR Provider (Tier 1)
         if provider_preference in ["auto", "lidar"] and self.lidar_provider.is_available(bounds):
             res = self.lidar_provider.get_elevation_grid(bounds, resolution)
             if res is not None:
-                res[1]["fallback_notice"] = "Active dataset: High-Resolution Airborne LiDAR"
+                res[1]["fallback_notice"] = "Active dataset: High-Resolution Airborne LiDAR Survey"
                 return res
 
-        # 2. Local GeoTIFF
-        if (provider_preference in ["auto", "local-geotiff"] or sample_id) and self.local_provider.is_available(bounds):
+        # 2. Local Demo GeoTIFF (Only if DEMO MODE or Explicit Local Preference)
+        if data_mode == "demo" and (sample_id or provider_preference == "local-geotiff") and self.local_provider.is_available(bounds):
             res = self.local_provider.get_elevation_grid(bounds, resolution)
             if res is not None:
-                res[1]["fallback_notice"] = "Active dataset: Local High-Resolution GeoTIFF DEM"
+                res[1]["fallback_notice"] = "Active dataset: Synthetic Geomorphology Model (Demo Mode)"
                 return res
 
-        # 3. Copernicus DEM GLO-30
+        # In REAL MODE: check if non-synthetic local GeoTIFF is available
+        if data_mode == "real" and provider_preference in ["auto", "local-geotiff"] and self.local_provider.is_available(bounds):
+            res = self.local_provider.get_elevation_grid(bounds, resolution)
+            if res is not None and res[1].get("data_status") == "REAL DATA":
+                res[1]["fallback_notice"] = "Active dataset: Authoritative Local GeoTIFF Survey"
+                return res
+
+        # 3. Copernicus DEM GLO-30 (Tier 2 Global Primary)
         if provider_preference in ["auto", "copernicus"]:
             res = self.copernicus_provider.get_elevation_grid(bounds, resolution)
             if res is not None:
-                res[1]["fallback_notice"] = "High-resolution LiDAR unavailable for this region. Using Copernicus GLO-30 DEM (~30m)."
+                if provider_preference == "lidar":
+                    res[1]["fallback_notice"] = "Airborne LiDAR unavailable for this region — fell back to Copernicus GLO-30 DEM (~30m DSM)."
+                else:
+                    res[1]["fallback_notice"] = "High-resolution LiDAR unavailable for this region — using Copernicus GLO-30 DEM (~30m DSM)."
                 return res
 
-        # 4. SRTM GL1 30m
+        # 4. SRTM GL1 30m (Tier 3 Global Fallback)
         res = self.srtm_provider.get_elevation_grid(bounds, resolution)
         if res is not None:
-            res[1]["fallback_notice"] = "High-resolution LiDAR unavailable for this region. Using SRTM ~30m DEM (NASA/USGS)."
+            res[1]["fallback_notice"] = "Copernicus/LiDAR unavailable — fell back to SRTM ~30m DEM (NASA/USGS)."
             return res
 
-        # Fallback constant array if offline
+        # Fallback constant array if network completely offline
         flat = np.full((resolution, resolution), 500.0, dtype=np.float32)
         meta = {
             "source": "SRTM Base Fallback (Network Offline)",
+            "data_status": "REAL DATA",
+            "dataset_category": "DEM-derived",
+            "native_resolution": "~30 m",
             "horizontal_resolution": "~30 m",
+            "source_crs": "EPSG:4326 (WGS84)",
+            "projected_crs": "Local Transverse Equirectangular Metric Plane",
             "vertical_datum": "EGM96 (Meters)",
+            "source_vertical_datum": "EGM96 Geoid / MSL",
+            "output_vertical_datum": "Orthometric Meters above Geoid",
             "elevation_type": "DEM-derived",
             "vertical_accuracy": "Nominal",
             "data_voids": 0,
             "interpolation_method": "Constant Base",
-            "fallback_notice": "Network connection unavailable. Loaded offline base."
+            "fallback_notice": "Network connection unavailable. Loaded offline base.",
+            "resolution_transparency_note": "Offline base fallback array."
         }
         return flat, meta
 

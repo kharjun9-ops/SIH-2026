@@ -51,13 +51,15 @@ class ReconstructionService:
 
         resolution = request.grid_resolution or 128
         provider_pref = request.provider or "auto"
+        data_mode = request.data_mode or "real"
 
         # 1. Retrieve authoritative elevation grid via ElevationManager
         elevation_grid, dem_meta = elevation_manager.get_elevation_grid(
             bounds_dict, 
             resolution=resolution, 
             provider_preference=provider_pref, 
-            sample_id=request.sample_id
+            sample_id=request.sample_id,
+            data_mode=data_mode
         )
 
         # 2. Local Metric Bounds (meters East/West and North/South)
@@ -84,8 +86,9 @@ class ReconstructionService:
             try:
                 sun_az = request.sun_azimuth if request.sun_azimuth is not None else 315.0
                 sun_alt = request.sun_altitude if request.sun_altitude is not None else 45.0
+                intensity = request.hillshade_intensity if request.hillshade_intensity is not None else 1.0
                 hillshade_url = hillshade_service.generate_hillshade_texture(
-                    elevation_grid, cell_x_m, cell_y_m, azimuth_deg=sun_az, altitude_deg=sun_alt
+                    elevation_grid, cell_x_m, cell_y_m, azimuth_deg=sun_az, altitude_deg=sun_alt, intensity=intensity
                 )
             except Exception as e:
                 print(f"[ReconstructionService] Hillshade skipped: {e}")
@@ -101,17 +104,31 @@ class ReconstructionService:
         vertex_count = rows * cols
         face_count = (rows - 1) * (cols - 1) * 2
 
+        native_res = dem_meta.get("native_resolution", dem_meta.get("horizontal_resolution", "~30 m"))
+        vis_res = f"{max(cell_x_m, cell_y_m):.1f} m"
+        mesh_res = f"{resolution}x{resolution} ({vertex_count:,} vertices)"
+
         gis_meta = GISMetadata(
-            source=dem_meta.get("source", "SRTM GL1 30m / Copernicus DEM"),
-            horizontal_resolution=dem_meta.get("horizontal_resolution", "~30m (1 arc-sec)"),
-            vertical_datum=dem_meta.get("vertical_datum", "EGM96 Geoid / MSL (Meters)"),
-            vertical_accuracy=dem_meta.get("vertical_accuracy", "±16m (90% linear error)"),
-            elevation_type=dem_meta.get("elevation_type", "DEM-derived"),
+            source=dem_meta.get("source", "Copernicus DEM GLO-30 / SRTM GL1"),
+            data_status=dem_meta.get("data_status", "REAL DATA"),
+            dataset_category=dem_meta.get("dataset_category", "DSM (Surface Elevation)"),
+            native_resolution=native_res,
+            visualization_resolution=vis_res,
+            mesh_resolution=mesh_res,
+            horizontal_resolution=dem_meta.get("horizontal_resolution", "~30 m"),
+            source_crs=dem_meta.get("source_crs", "EPSG:4326 (WGS84)"),
+            projected_crs=dem_meta.get("projected_crs", "Local Transverse Equirectangular Metric Plane"),
+            vertical_datum=dem_meta.get("vertical_datum", "EGM2008 / EGM96 Geoid (MSL)"),
+            source_vertical_datum=dem_meta.get("source_vertical_datum", "EGM2008 / EGM96 Geoid"),
+            output_vertical_datum=dem_meta.get("output_vertical_datum", "Orthometric Meters above Geoid"),
+            vertical_accuracy=dem_meta.get("vertical_accuracy", "±4m absolute (Copernicus Spec)"),
+            elevation_type=dem_meta.get("elevation_type", "DSM (Surface)"),
             projection="Local Transverse Mercator (WGS84 Equirectangular Cos-Corrected)",
             grid_spacing_x_m=round(cell_x_m, 2),
             grid_spacing_y_m=round(cell_y_m, 2),
             data_voids_count=dem_meta.get("data_voids", 0),
-            interpolation_method=dem_meta.get("interpolation_method", "Bilinear Resampling")
+            interpolation_method=dem_meta.get("interpolation_method", "Continuous Bilinear Resampling"),
+            resolution_transparency_note=f"Visualization resolution ({vis_res}) is interpolated from the {native_res} native source and does not represent {vis_res} field survey accuracy."
         )
 
         job_id = uuid.uuid4().hex[:10]

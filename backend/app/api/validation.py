@@ -20,7 +20,11 @@ def run_accuracy_validation(request: ValidationRunRequest):
         sample_count = request.sample_count or 100
 
         grid, meta = elevation_manager.get_elevation_grid(
-            bounds_dict, resolution=res, provider_preference=request.provider or "auto", sample_id=request.sample_id
+            bounds_dict, 
+            resolution=res, 
+            provider_preference=request.provider or "auto", 
+            sample_id=request.sample_id,
+            data_mode=request.data_mode or "real"
         )
 
         source_name = meta.get("source", "SRTM GL1 30m")

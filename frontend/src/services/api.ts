@@ -6,10 +6,16 @@ import {
   LatLonBounds,
   PointValidation,
   ValidationReport,
-  LiDARProcessResponse
+  LiDARProcessResponse,
+  EnvironmentLayersResponse
 } from '../types';
 
-const API_BASE = '/api';
+// Support custom backend URL in production (e.g. VITE_API_BASE_URL=https://my-backend.onrender.com)
+// In local development, falls back to Vite proxy at '/api'
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL as string) || '';
+const API_BASE = rawBaseUrl.trim()
+  ? `${rawBaseUrl.trim().replace(/\/$/, '')}/api`
+  : '/api';
 
 export const api = {
   async fetchSamples(): Promise<{ samples: SampleRegion[] }> {
@@ -26,10 +32,13 @@ export const api = {
     grid_resolution?: number;
     provider?: string;
     sample_id?: string;
+    data_mode?: 'real' | 'demo';
+    area_preset?: string;
     include_satellite_texture?: boolean;
     include_hillshade?: boolean;
     sun_azimuth?: number;
     sun_altitude?: number;
+    hillshade_intensity?: number;
     contour_interval_m?: number;
   }): Promise<TerrainReconstructResponse> {
     const res = await fetch(`${API_BASE}/terrain/reconstruct`, {
@@ -60,6 +69,7 @@ export const api = {
     sample_count?: number;
     provider?: string;
     sample_id?: string;
+    data_mode?: 'real' | 'demo';
   }): Promise<ValidationReport> {
     const res = await fetch(`${API_BASE}/validation/run`, {
       method: 'POST',
@@ -153,5 +163,30 @@ export const api = {
     } catch {
       return [];
     }
+  },
+
+  async fetchEnvironmentLayers(params: {
+    bounds: LatLonBounds;
+    layers?: string[];
+    data_mode?: string;
+    grid_resolution?: number;
+    provider?: string;
+  }): Promise<EnvironmentLayersResponse> {
+    const res = await fetch(`${API_BASE}/environment/layers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bounds: params.bounds,
+        layers: params.layers || ['buildings', 'roads', 'water'],
+        data_mode: params.data_mode || 'real',
+        grid_resolution: params.grid_resolution || 128,
+        provider: params.provider || 'auto',
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Environment layers error' }));
+      throw new Error(err.detail || 'Failed to fetch environment layers');
+    }
+    return res.json();
   }
 };

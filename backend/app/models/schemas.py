@@ -20,8 +20,17 @@ class MetricBounds(BaseModel):
 
 class GISMetadata(BaseModel):
     source: str
+    data_status: str = "REAL DATA"  # "REAL DATA" or "SYNTHETIC DEMO DATA"
+    dataset_category: str = "DSM (Surface Elevation)"  # "DTM (Bare-Earth)", "DSM (Surface Elevation)", or "DEM-derived"
+    native_resolution: str
+    visualization_resolution: str
+    mesh_resolution: str
     horizontal_resolution: str
-    vertical_datum: str
+    source_crs: str = "EPSG:4326 (WGS84)"
+    projected_crs: str = "Local Transverse Equirectangular (Meters)"
+    vertical_datum: str = "EGM2008 / EGM96 Geoid (MSL)"
+    source_vertical_datum: str = "EGM2008 / EGM96 Geoid"
+    output_vertical_datum: str = "Orthometric Meters above Geoid"
     vertical_accuracy: str
     elevation_type: str = "DEM-derived"
     projection: str = "Local Transverse Mercator (WGS84 Equirectangular Cos-Corrected)"
@@ -29,6 +38,7 @@ class GISMetadata(BaseModel):
     grid_spacing_y_m: float
     data_voids_count: int
     interpolation_method: str
+    resolution_transparency_note: str = "Visualization resolution is resampled from the native source raster."
 
 class PointCoordinate(BaseModel):
     latitude: float
@@ -42,10 +52,13 @@ class TerrainReconstructRequest(BaseModel):
     grid_resolution: Optional[int] = Field(128, ge=32, le=256, description="Grid resolution e.g. 128x128")
     provider: Optional[str] = Field("auto", description="Provider preference: 'auto', 'lidar', 'copernicus', 'srtm', 'local-geotiff'")
     sample_id: Optional[str] = Field(None, description="Sample region ID")
+    data_mode: Optional[str] = Field("real", description="Data mode: 'real' (strict remote sensing / survey) or 'demo' (synthetic presets allowed)")
+    area_preset: Optional[str] = Field(None, description="Area preset: '1x1km', '2x2km', '5x5km', '10x10km', 'custom'")
     include_satellite_texture: Optional[bool] = Field(True, description="Generate satellite imagery layer")
     include_hillshade: Optional[bool] = Field(True, description="Generate analytical hillshade relief")
     sun_azimuth: Optional[float] = Field(315.0, ge=0.0, le=360.0, description="Sun direction in degrees")
     sun_altitude: Optional[float] = Field(45.0, ge=0.0, le=90.0, description="Sun elevation angle in degrees")
+    hillshade_intensity: Optional[float] = Field(1.0, ge=0.0, le=2.0, description="Hillshade relief intensity")
     contour_interval_m: Optional[float] = Field(20.0, description="Contour line spacing in meters")
 
 class PointInspection(BaseModel):
@@ -163,6 +176,7 @@ class ValidationRunRequest(BaseModel):
     sample_count: Optional[int] = 100
     provider: Optional[str] = "auto"
     sample_id: Optional[str] = None
+    data_mode: Optional[str] = "real"
 
 class TwoPointMeasurementRequest(BaseModel):
     lat_a: float
@@ -182,8 +196,14 @@ class TwoPointMeasurementResponse(BaseModel):
     point_b: PointInspection
     height_difference: float
     distance_meters: float
+    surface_distance_m: float
     slope_percent: float
     slope_degrees: float
+    average_gradient_pct: float
+    total_ascent_m: float
+    total_descent_m: float
+    min_elevation_m: float
+    max_elevation_m: float
     comparison_text: str
     elevation_profile: List[ElevationProfilePoint]
 
@@ -192,6 +212,10 @@ class LiDARProcessResponse(BaseModel):
     file_name: str
     saved_file: str
     point_count: int
+    point_density_sq_m: float
+    point_spacing_m: float
+    has_ground_classification: bool
+    accuracy_statement: str
     bounds: LatLonBounds
     elevation_stats: Dict[str, float]
     elevation_grid: List[List[float]]
@@ -214,3 +238,51 @@ class ImageAnalysisResponse(BaseModel):
     features_preview_url: str
     depth_notice: str = "AI-estimated relative depth (relative scale only, not calibrated absolute meters)"
     recommended_bounds: Optional[LatLonBounds] = None
+
+class BuildingHeightSummary(BaseModel):
+    lidar_available: bool
+    status_message: str
+    source_file: Optional[str] = None
+    total_buildings: int
+    lidar_count: int
+    osm_height_count: int
+    osm_levels_count: int
+    estimated_count: int
+    lidar_coverage_pct: float
+    mean_lidar_height: Optional[float] = None
+    median_lidar_height: Optional[float] = None
+    min_lidar_height: Optional[float] = None
+    max_lidar_height: Optional[float] = None
+
+class BuildingFeatureModel(BaseModel):
+    id: str
+    footprint: List[List[float]]
+    footprint_metric: List[List[float]]
+    latitude: float
+    longitude: float
+    x_metric: float
+    z_metric: float
+    ground_elevation: float
+    relative_elevation: float
+    height: float
+    top_elevation: float
+    height_source: str  # "LIDAR", "OSM_HEIGHT", "OSM_LEVELS", "ESTIMATED", "SYNTHETIC_DEMO"
+    height_quality: str = "N/A"  # "HIGH", "MEDIUM", "LOW", "N/A"
+    geometry_quality: str = "MEDIUM"  # "HIGH", "MEDIUM", "LOW"
+    footprint_source: str = "OpenStreetMap"
+    lidar_points_count: Optional[int] = 0
+    lidar_roof_elevation: Optional[float] = None
+    lidar_ground_elevation: Optional[float] = None
+    osm_height_diff: Optional[float] = None
+    roof_type: str = "flat"
+    footprint_area_sq_m: float = 0.0
+    name: Optional[str] = None
+    building_type: Optional[str] = "yes"
+    source: str = "OpenStreetMap"
+
+class EnvironmentCoverageSummary(BaseModel):
+    buildings: Dict[str, Any]
+    roads: Dict[str, Any]
+    water: Dict[str, Any]
+
+

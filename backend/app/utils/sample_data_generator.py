@@ -7,6 +7,18 @@ from PIL import Image, ImageDraw, ImageFilter
 
 SAMPLE_REGIONS = [
     {
+        "id": "bengaluru_pilot",
+        "name": "Bengaluru Central Pilot (Vidhana Soudha & MG Road)",
+        "country": "India (Karnataka)",
+        "center_lat": 12.9716,
+        "center_lon": 77.5946,
+        "radius_meters": 1500,
+        "type": "urban_plateau",
+        "base_elevation": 890.0,
+        "peak_elevation": 955.0,
+        "description": "Dense urban plateau with Vidhana Soudha, High Court, Cubbon Park, MG Road commercial grid, and Sankey/Ulsoor water bodies."
+    },
+    {
         "id": "mount_fuji",
         "name": "Mount Fuji (Stratovolcano)",
         "country": "Japan",

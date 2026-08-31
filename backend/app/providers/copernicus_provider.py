@@ -152,12 +152,20 @@ class CopernicusDEMProvider(ElevationProvider):
 
         meta = {
             "source": self.get_source_name(),
+            "data_status": "REAL DATA",
+            "dataset_category": "DSM (Surface Elevation)",
+            "native_resolution": "~30 m (1 arc-second nominal)",
             "horizontal_resolution": self.get_resolution(),
+            "source_crs": "EPSG:4326 (WGS84) / Web Mercator EPSG:3857",
+            "projected_crs": "Local Transverse Equirectangular Metric Tangent Plane",
             "vertical_datum": self.get_vertical_datum(),
-            "elevation_type": self.get_elevation_type(),
-            "vertical_accuracy": "±4m absolute vertical accuracy (Copernicus Spec)",
+            "source_vertical_datum": "EGM2008 / EGM96 Geoid",
+            "output_vertical_datum": "Orthometric Meters above Mean Sea Level",
+            "elevation_type": "DSM (Surface Elevation including canopy/structures)",
+            "vertical_accuracy": "±4m absolute vertical accuracy (Copernicus GLO-30 Spec)",
             "zoom_level": z,
             "data_voids": int(np.sum(np.isnan(resampled) | (resampled < -500))),
-            "interpolation_method": "Bilinear Resampling (Preserving DEM values in meters)"
+            "interpolation_method": "Continuous Sub-Pixel Bilinear Resampling",
+            "resolution_transparency_note": "Visualization grid is resampled from the native 30m Copernicus GLO-30 raster."
         }
         return resampled.astype(np.float32), meta

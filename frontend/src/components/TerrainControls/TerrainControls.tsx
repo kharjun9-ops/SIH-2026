@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Sliders, 
   Layers, 
@@ -13,9 +12,12 @@ import {
   Image as ImageIcon,
   Mountain,
   Activity,
-  Compass
+  Compass,
+  Building2,
+  Route,
+  Droplets
 } from 'lucide-react';
-import { VisualMode, ColormapMode } from '../../types';
+import { VisualMode, ColormapMode, LayerVisibility } from '../../types';
 
 interface TerrainControlsProps {
   exaggeration: number;
@@ -30,12 +32,22 @@ interface TerrainControlsProps {
   onToggleSatelliteTexture: () => void;
   showContours: boolean;
   onToggleContours: () => void;
+  contourInterval?: number;
+  onContourIntervalChange?: (interval: number) => void;
   showGrid: boolean;
   onToggleGrid: () => void;
   sunAzimuth?: number;
   onSunAzimuthChange?: (val: number) => void;
   sunAltitude?: number;
   onSunAltitudeChange?: (val: number) => void;
+  hillshadeIntensity?: number;
+  onHillshadeIntensityChange?: (val: number) => void;
+  layerVisibility?: LayerVisibility;
+  onToggleLayer?: (layer: keyof LayerVisibility) => void;
+  colorBySource?: boolean;
+  onToggleColorBySource?: () => void;
+  environmentLoading?: boolean;
+  environmentAvailable?: boolean;
 }
 
 export const TerrainControls: React.FC<TerrainControlsProps> = ({
@@ -51,12 +63,22 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
   onToggleSatelliteTexture,
   showContours,
   onToggleContours,
+  contourInterval = 20,
+  onContourIntervalChange,
   showGrid,
   onToggleGrid,
   sunAzimuth = 315,
   onSunAzimuthChange,
   sunAltitude = 45,
   onSunAltitudeChange,
+  hillshadeIntensity = 1.0,
+  onHillshadeIntensityChange,
+  layerVisibility,
+  onToggleLayer,
+  colorBySource = true,
+  onToggleColorBySource,
+  environmentLoading = false,
+  environmentAvailable = false,
 }) => {
   return (
     <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-5 shadow-2xl space-y-5">
@@ -212,7 +234,7 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between text-[11px] text-slate-400">
               <span>Sun Azimuth (Compass Heading):</span>
-              <span className="font-mono text-slate-200">{sunAzimuth}° (NW)</span>
+              <span className="font-mono text-slate-200">{sunAzimuth}°</span>
             </div>
             <input
               type="range"
@@ -225,7 +247,7 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
             />
 
             <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-              <span>Sun Altitude (Angle above Horizon):</span>
+              <span>Sun Altitude (Elevation above Horizon):</span>
               <span className="font-mono text-slate-200">{sunAltitude}°</span>
             </div>
             <input
@@ -236,6 +258,20 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
               value={sunAltitude}
               onChange={(e) => onSunAltitudeChange && onSunAltitudeChange(parseFloat(e.target.value))}
               className="w-full cursor-pointer accent-amber-400"
+            />
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+              <span>Hillshade Relief Intensity:</span>
+              <span className="font-mono text-cyan-300 font-bold">{hillshadeIntensity.toFixed(1)}×</span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={2.0}
+              step={0.1}
+              value={hillshadeIntensity}
+              onChange={(e) => onHillshadeIntensityChange && onHillshadeIntensityChange(parseFloat(e.target.value))}
+              className="w-full cursor-pointer accent-cyan-400"
             />
           </div>
         </div>
@@ -281,20 +317,41 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
       <div className="space-y-2.5 pt-2 border-t border-slate-800">
         <label className="text-xs text-slate-400 font-medium">Overlays & Vectors</label>
         
-        {/* Real Contour Lines Toggle */}
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-300 flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5 text-cyan-400" />
-            Elevation Contour Lines (20m)
-          </span>
-          <button
-            onClick={onToggleContours}
-            className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-              showContours ? 'bg-cyan-500' : 'bg-slate-800'
-            }`}
-          >
-            <div className={`w-4 h-4 rounded-full bg-white transition-transform ${showContours ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
+        {/* Real Contour Lines Toggle + Interval Selector */}
+        <div className="space-y-2 p-2.5 bg-slate-950/80 rounded-xl border border-slate-800/80">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300 flex items-center gap-1.5">
+              <Compass className="w-3.5 h-3.5 text-cyan-400" />
+              Elevation Contours ({contourInterval}m)
+            </span>
+            <button
+              onClick={onToggleContours}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
+                showContours ? 'bg-cyan-500' : 'bg-slate-800'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${showContours ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {showContours && (
+            <div className="flex items-center gap-1.5 pt-1">
+              <span className="text-[10px] text-slate-500 font-mono">Interval:</span>
+              {[5, 10, 20, 50, 100].map((intVal) => (
+                <button
+                  key={intVal}
+                  onClick={() => onContourIntervalChange && onContourIntervalChange(intVal)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${
+                    contourInterval === intVal
+                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {intVal}m
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Wireframe Mesh Toggle */}
@@ -329,6 +386,113 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ─── Environment Layers ─── */}
+      {layerVisibility && onToggleLayer && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Environment Layers</span>
+            </div>
+            {environmentLoading && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-700/60 text-amber-300 font-mono animate-pulse">
+                Loading...
+              </span>
+            )}
+            {!environmentLoading && environmentAvailable && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 font-mono">
+                OSM
+              </span>
+            )}
+          </div>
+
+          {/* Buildings Toggle */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-amber-400" />
+              Buildings
+            </span>
+            <button
+              onClick={() => onToggleLayer('buildings')}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
+                layerVisibility.buildings ? 'bg-amber-500' : 'bg-slate-800'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.buildings ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {/* Color by Height Source Toggle (when buildings active) */}
+          {layerVisibility.buildings && onToggleColorBySource && (
+            <div className="pl-4 py-1.5 border-l-2 border-cyan-500/40 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-cyan-300 text-[11px] font-medium flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  Color by Height Source
+                </span>
+                <button
+                  onClick={onToggleColorBySource}
+                  className={`w-9 h-4.5 rounded-full p-0.5 transition-colors ${
+                    colorBySource ? 'bg-cyan-500' : 'bg-slate-800'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${colorBySource ? 'translate-x-4.5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+
+              {colorBySource && (
+                <div className="grid grid-cols-3 gap-1 pt-1 text-[9px] font-mono text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
+                    <span>LiDAR</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                    <span>Mapped</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+                    <span>Estimated</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Roads Toggle */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300 flex items-center gap-1.5">
+              <Route className="w-3.5 h-3.5 text-slate-400" />
+              Roads
+            </span>
+            <button
+              onClick={() => onToggleLayer('roads')}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
+                layerVisibility.roads ? 'bg-slate-500' : 'bg-slate-800'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.roads ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {/* Water Toggle */}
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-300 flex items-center gap-1.5">
+              <Droplets className="w-3.5 h-3.5 text-blue-400" />
+              Water Bodies
+            </span>
+            <button
+              onClick={() => onToggleLayer('water')}
+              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
+                layerVisibility.water ? 'bg-blue-500' : 'bg-slate-800'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.water ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
