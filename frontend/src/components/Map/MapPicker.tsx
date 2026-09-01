@@ -5,6 +5,9 @@ import {
   Marker, 
   Circle, 
   Rectangle, 
+  Polygon,
+  CircleMarker,
+  Popup,
   useMap, 
   useMapEvents 
 } from 'react-leaflet';
@@ -19,9 +22,11 @@ import {
   Compass,
   CheckCircle2,
   Sparkles,
-  Globe
+  Globe,
+  AlertTriangle,
+  Flame
 } from 'lucide-react';
-import { LatLonBounds, SampleRegion } from '../../types';
+import { LatLonBounds, SampleRegion, LandslideAnalysisResponse, LandslideHotspot } from '../../types';
 
 // Custom Leaflet Pin Icon
 const pinIcon = L.divIcon({
@@ -80,6 +85,8 @@ interface MapPickerProps {
   inspectedLon?: number;
   onGenerate3DWorld?: () => void;
   isLoading?: boolean;
+  landslideData?: LandslideAnalysisResponse | null;
+  onSelectHotspot?: (hs: LandslideHotspot) => void;
 }
 
 // Controller component to smoothly fly map to new center & invalidate size
@@ -121,11 +128,13 @@ export const MapPicker: React.FC<MapPickerProps> = ({
   inspectedLon,
   onGenerate3DWorld,
   isLoading = false,
+  landslideData,
+  onSelectHotspot,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ display_name: string; lat: number; lon: number }>>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [mapType, setMapType] = useState<'osm' | 'satellite' | 'terrain' | 'dark'>('satellite');
+  const [mapType, setMapType] = useState<'osm' | 'satellite' | 'terrain'>('satellite');
   
   // Calculate bounds
   const latDelta = radiusMeters / 111320.0;
@@ -276,17 +285,6 @@ export const MapPicker: React.FC<MapPickerProps> = ({
             >
               Terrain
             </button>
-
-            <button
-              onClick={() => setMapType('dark')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all ${
-                mapType === 'dark'
-                  ? 'bg-cyan-500 text-slate-950 font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Dark Grid
-            </button>
           </div>
         </div>
 
@@ -362,15 +360,6 @@ export const MapPicker: React.FC<MapPickerProps> = ({
             />
           )}
 
-          {/* 4. Carto Dark Baseline */}
-          {mapType === 'dark' && (
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              maxZoom={19}
-            />
-          )}
-
           {/* Area of interest circle & bounding rectangle */}
           <Circle
             center={[centerLat, centerLon]}
@@ -392,6 +381,81 @@ export const MapPicker: React.FC<MapPickerProps> = ({
               weight: 2,
             }}
           />
+
+          {/* 2D Landslide Hotspot Polygons & Popups (Top 3 Critical) */}
+          {landslideData?.hotspots && landslideData.hotspots.slice(0, 3).map((hs) => {
+            const poly = hs.polygon_bounds || [
+              [hs.centroid_lat + 0.001, hs.centroid_lon - 0.001],
+              [hs.centroid_lat + 0.001, hs.centroid_lon + 0.001],
+              [hs.centroid_lat - 0.001, hs.centroid_lon + 0.001],
+              [hs.centroid_lat - 0.001, hs.centroid_lon - 0.001],
+            ];
+            const isVeryHigh = hs.risk_class === 'VERY HIGH';
+            return (
+              <Polygon
+                key={hs.id}
+                positions={poly as [number, number][]}
+                pathOptions={{
+                  color: isVeryHigh ? '#ef4444' : '#f97316',
+                  fillColor: isVeryHigh ? '#ef4444' : '#f97316',
+                  fillOpacity: 0.45,
+                  weight: 2,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    if (onSelectHotspot) onSelectHotspot(hs);
+                  }
+                }}
+              >
+                <Popup>
+                  <div className="font-mono text-xs p-1 space-y-1">
+                    <div className="font-bold text-slate-900 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{hs.name} ({hs.risk_class})</span>
+                    </div>
+                    <div>Area: <strong>{hs.area_sq_m} m²</strong></div>
+                    <div>Mean Slope: <strong>{hs.mean_slope_deg}°</strong> (Max: {hs.max_slope_deg}°)</div>
+                    <div>Peak Susceptibility: <strong>{hs.peak_susceptibility}</strong></div>
+                    <div className="text-[10px] text-slate-500 italic">Screening result — not a prediction</div>
+                  </div>
+                </Popup>
+              </Polygon>
+            );
+          })}
+
+          {/* Real Historical Landslide Markers (NASA GLC / ISRO LAI) */}
+          {landslideData?.historical_events && landslideData.historical_events.map((ev) => (
+            <CircleMarker
+              key={ev.id}
+              center={[ev.latitude, ev.longitude]}
+              radius={8}
+              pathOptions={{
+                color: ev.is_captured ? '#ef4444' : '#f59e0b',
+                fillColor: ev.is_captured ? '#ef4444' : '#f59e0b',
+                fillOpacity: 0.85,
+                weight: 2,
+              }}
+            >
+              <Popup>
+                <div className="font-mono text-xs p-1.5 space-y-1 max-w-[220px]">
+                  <div className="font-bold text-rose-700 flex items-center gap-1">
+                    <Flame className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{ev.id}</span>
+                  </div>
+                  <div>Trigger: <strong>{ev.trigger}</strong></div>
+                  <div>Event Date: <strong>{ev.event_date || 'Cataloged'}</strong></div>
+                  <div>Confidence: <strong className="text-emerald-700">{ev.confidence}</strong></div>
+                  <div>Source: <strong>{ev.source}</strong></div>
+                  {ev.citation && <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200">{ev.citation}</div>}
+                  {ev.predicted_risk_class && (
+                    <div className="text-[10px] font-bold p-1 rounded bg-slate-100 text-slate-800">
+                      Predicted: {ev.predicted_risk_class} ({ev.predicted_score}) {ev.is_captured ? '✓ Captured' : '— Missed'}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
 
           {/* Selected Center Pin */}
           <Marker position={[centerLat, centerLon]} icon={pinIcon} />

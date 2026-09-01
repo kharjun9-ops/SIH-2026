@@ -16,7 +16,10 @@ import {
   Layers,
   ArrowUp,
   ShieldCheck,
-  Activity
+  Activity,
+  AlertTriangle,
+  Flame,
+  Info
 } from 'lucide-react';
 import { 
   TerrainReconstructResponse, 
@@ -25,7 +28,10 @@ import {
   InteractionTool, 
   PointInspection, 
   TwoPointMeasurementResponse,
-  PointValidation 
+  PointValidation,
+  LandslideAnalysisResponse,
+  LandslideHotspot,
+  HistoricalLandslideEvent
 } from '../../types';
 import { TerrainMesh } from './TerrainMesh';
 import { MeasurementPins } from './MeasurementPins';
@@ -62,12 +68,67 @@ interface TerrainCanvasProps {
   onOpenAccuracyModal?: () => void;
   onOpenProfileModal?: () => void;
   environmentData?: any;
-  layerVisibility?: { buildings: boolean; roads: boolean; water: boolean; landmarks: boolean };
+  layerVisibility?: { buildings: boolean; roads: boolean; water: boolean; landmarks: boolean; landslide?: boolean };
   colorBySource?: boolean;
   onBuildingClick?: (building: any) => void;
   onRoadClick?: (road: any) => void;
   onWaterClick?: (water: any) => void;
+  landslideData?: LandslideAnalysisResponse | null;
+  onHotspotClick?: (hotspot: LandslideHotspot) => void;
+  showHistoricalLandslides?: boolean;
+  onSelectHistoricalEvent?: (event: HistoricalLandslideEvent) => void;
 }
+
+// 3D Historical Landslide Marker Pins Component
+const HistoricalLandslideMarkers: React.FC<{
+  events: HistoricalLandslideEvent[];
+  bounds: any;
+  onSelectEvent?: (ev: HistoricalLandslideEvent) => void;
+}> = ({ events, bounds, onSelectEvent }) => {
+  if (!events || events.length === 0) return null;
+  const midLat = (bounds.min_lat + bounds.max_lat) / 2.0;
+  const midLon = (bounds.min_lon + bounds.max_lon) / 2.0;
+
+  return (
+    <group>
+      {events.map((ev) => {
+        const mx = (ev.longitude - midLon) * (111320.0 * Math.cos((midLat * Math.PI) / 180));
+        const mz = (bounds.max_lat - ev.latitude - (bounds.max_lat - bounds.min_lat) / 2.0) * 111320.0;
+
+        return (
+          <group key={ev.id} position={[mx, 35, -mz]}>
+            <mesh position={[0, 8, 0]}>
+              <sphereGeometry args={[14, 16, 16]} />
+              <meshStandardMaterial 
+                color={ev.is_captured ? "#ef4444" : "#f59e0b"} 
+                emissive={ev.is_captured ? "#ef4444" : "#f59e0b"} 
+                emissiveIntensity={0.8} 
+              />
+            </mesh>
+            <mesh position={[0, -8, 0]}>
+              <cylinderGeometry args={[2, 2, 28, 8]} />
+              <meshStandardMaterial color="#ffffff" />
+            </mesh>
+            <Html position={[0, 26, 0]} center>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSelectEvent) onSelectEvent(ev);
+                }}
+                className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold text-white shadow-2xl flex items-center gap-1 border transition-transform hover:scale-110 cursor-pointer whitespace-nowrap pointer-events-auto ${
+                  ev.is_captured ? 'bg-rose-950/95 border-rose-500 text-rose-200' : 'bg-amber-950/95 border-amber-500 text-amber-200'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-rose-400" />
+                <span>{ev.id} &bull; {ev.trigger.slice(0, 22)}</span>
+              </button>
+            </Html>
+          </group>
+        );
+      })}
+    </group>
+  );
+};
 
 // 3D North Compass Indicator Widget Component
 const NorthIndicator: React.FC<{ terrainWidthM: number }> = ({ terrainWidthM }) => {
@@ -127,6 +188,46 @@ const MetricScaleBar: React.FC<{ terrainWidthM: number }> = ({ terrainWidthM }) 
   );
 };
 
+// 3D Hotspot Highlight Ring Component (Top 3 Critical Hotspots)
+const HotspotMarkers: React.FC<{
+  hotspots: LandslideHotspot[];
+  onSelectHotspot?: (hs: LandslideHotspot) => void;
+}> = ({ hotspots, onSelectHotspot }) => {
+  return (
+    <group>
+      {hotspots.slice(0, 3).map((hs) => (
+        <group key={hs.id} position={[hs.centroid_x_m, 20, -hs.centroid_z_m]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[Math.max(20, Math.sqrt(hs.area_sq_m) * 0.25), Math.max(26, Math.sqrt(hs.area_sq_m) * 0.3), 32]} />
+            <meshBasicMaterial 
+              color={hs.risk_class === 'VERY HIGH' ? '#ef4444' : '#f97316'} 
+              transparent 
+              opacity={0.8} 
+              side={THREE.DoubleSide} 
+            />
+          </mesh>
+          <Html position={[0, 15, 0]} center>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSelectHotspot) onSelectHotspot(hs);
+              }}
+              className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold text-white shadow-xl flex items-center gap-1 border transition-transform hover:scale-110 cursor-pointer whitespace-nowrap pointer-events-auto ${
+                hs.risk_class === 'VERY HIGH' 
+                  ? 'bg-rose-950/95 border-rose-500 text-rose-300' 
+                  : 'bg-amber-950/95 border-amber-500 text-amber-300'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3 text-amber-400" />
+              <span>{hs.name} ({hs.risk_class})</span>
+            </button>
+          </Html>
+        </group>
+      ))}
+    </group>
+  );
+};
+
 export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   terrainData,
   exaggeration = 1.0,
@@ -156,6 +257,10 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   onBuildingClick,
   onRoadClick,
   onWaterClick,
+  landslideData,
+  onHotspotClick,
+  showHistoricalLandslides = true,
+  onSelectHistoricalEvent,
 }) => {
   const controlsRef = useRef<any>(null);
   const [selectedPointPos, setSelectedPointPos] = useState<THREE.Vector3 | null>(null);
@@ -463,7 +568,7 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             />
           )}
 
-          {/* 3D Reconstructed Metric Terrain Mesh with 7 Material Modes */}
+          {/* 3D Reconstructed Metric Terrain Mesh with 7+ Material Modes */}
           <TerrainMesh
             terrainData={terrainData}
             exaggeration={exaggeration}
@@ -472,8 +577,17 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             showWireframe={showWireframe}
             showSatelliteTexture={showSatelliteTexture}
             showContours={showContours}
+            landslideData={landslideData}
             onPointClick={handlePointClick}
           />
+
+          {/* 3D Landslide Hotspot Indicators */}
+          {(visualMode === 'landslide' || layerVisibility?.landslide) && landslideData?.hotspots && (
+            <HotspotMarkers 
+              hotspots={landslideData.hotspots} 
+              onSelectHotspot={onHotspotClick} 
+            />
+          )}
 
           {/* Environment Reconstruction Layers (Buildings, Roads, Water) */}
           {environmentData && layerVisibility && (
@@ -486,6 +600,15 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
               onBuildingClick={onBuildingClick}
               onRoadClick={onRoadClick}
               onWaterClick={onWaterClick}
+            />
+          )}
+
+          {/* 3D Historical Landslide Marker Pins */}
+          {showHistoricalLandslides && landslideData?.historical_events && (
+            <HistoricalLandslideMarkers
+              events={landslideData.historical_events}
+              bounds={terrainData.bounds}
+              onSelectEvent={onSelectHistoricalEvent}
             />
           )}
 
@@ -513,7 +636,7 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             />
           )}
 
-          <OrbitControls
+          <OrbitControls 
             ref={controlsRef}
             enableDamping
             dampingFactor={0.06}

@@ -12,6 +12,7 @@ from app.api.reconstruction import router as reconstruction_router
 from app.api.validation import router as validation_router
 from app.api.lidar import router as lidar_router
 from app.api.environment import router as environment_router
+from app.api.landslide import router as landslide_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -42,6 +43,7 @@ app.include_router(reconstruction_router, prefix=settings.API_V1_PREFIX)
 app.include_router(validation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(lidar_router, prefix=settings.API_V1_PREFIX)
 app.include_router(environment_router, prefix=settings.API_V1_PREFIX)
+app.include_router(landslide_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 def root():

@@ -5,7 +5,8 @@ import {
   TerrainReconstructResponse, 
   VisualMode, 
   ColormapMode, 
-  PointInspection 
+  PointInspection,
+  LandslideAnalysisResponse
 } from '../../types';
 import { resolveAssetUrl } from '../../services/api';
 
@@ -17,10 +18,18 @@ interface TerrainMeshProps {
   showWireframe: boolean;
   showSatelliteTexture: boolean;
   showContours?: boolean;
+  landslideData?: LandslideAnalysisResponse | null;
   onPointClick?: (inspection: PointInspection, worldPos: THREE.Vector3) => void;
 }
 
 // Colormap interpolation helpers
+export function getLandslideColor(score: number): THREE.Color {
+  if (score < 0.20) return new THREE.Color('#10b981'); // VERY LOW (Emerald)
+  if (score < 0.40) return new THREE.Color('#06b6d4'); // LOW (Cyan)
+  if (score < 0.60) return new THREE.Color('#f59e0b'); // MODERATE (Amber)
+  if (score < 0.80) return new THREE.Color('#f97316'); // HIGH (Orange)
+  return new THREE.Color('#ef4444');                   // VERY HIGH (Crimson)
+}
 function getHypsometricColor(t: number): THREE.Color {
   if (t < 0.2) return new THREE.Color().lerpColors(new THREE.Color('#153e2e'), new THREE.Color('#2d6a4f'), t / 0.2);
   if (t < 0.45) return new THREE.Color().lerpColors(new THREE.Color('#2d6a4f'), new THREE.Color('#8b6d47'), (t - 0.2) / 0.25);
@@ -68,6 +77,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
   showWireframe = false,
   showSatelliteTexture = true,
   showContours = false,
+  landslideData,
   onPointClick,
 }) => {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -154,11 +164,24 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
         positions.push(x_m, y_m, z_m);
         uvs.push(j / (c - 1), 1.0 - (i / (r - 1)));
 
-        // Colormap or Slope Coloring
+        // Colormap or Slope or Landslide Coloring
         const normElev = Math.min(1.0, Math.max(0.0, (elev - minE) / range));
         let col = new THREE.Color();
 
-        if (visualMode === 'slope') {
+        if (visualMode === 'landslide' || colormap === 'landslide') {
+          let score = 0.1;
+          if (landslideData && landslideData.risk_grid && landslideData.risk_grid[i] && landslideData.risk_grid[i][j] !== undefined) {
+            score = landslideData.risk_grid[i][j];
+          } else {
+            // Geotechnical screening fallback from slope
+            if (slope < 5.0) score = 0.08;
+            else if (slope < 15.0) score = 0.28;
+            else if (slope < 25.0) score = 0.48;
+            else if (slope < 35.0) score = 0.68;
+            else score = 0.88;
+          }
+          col = getLandslideColor(score);
+        } else if (visualMode === 'slope') {
           col = getSlopeColor(slope);
         } else if (colormap === 'viridis') {
           col = getViridisColor(normElev);
@@ -212,7 +235,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
       widthM: mb.width_m,
       heightM: mb.height_m,
     };
-  }, [terrainData, exaggeration, colormap, visualMode, showContours]);
+  }, [terrainData, exaggeration, colormap, visualMode, showContours, landslideData]);
 
   // Exact Raycasting Point Click -> Sub-pixel Continuous Bilinear DEM sampling
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -304,7 +327,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     return null;
   }, [visualMode, satelliteTexture, hillshadeTexture, showSatelliteTexture]);
 
-  const useVertexColors = !activeTexture || visualMode === 'slope';
+  const useVertexColors = !activeTexture || visualMode === 'slope' || visualMode === 'landslide';
 
   return (
     <group>

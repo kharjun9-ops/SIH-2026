@@ -178,6 +178,7 @@ export const App: React.FC = () => {
               handleReconstruct({ data_mode: mode });
             }}
             onImageAnalyzed={setImageAnalysis}
+            onSetTerrainData={(data) => setTerrainData(data)}
             onNavigateToStudio={() => setCurrentPage('viewer')}
           />
         )}

@@ -307,4 +307,222 @@ class EnvironmentCoverageSummary(BaseModel):
     roads: Dict[str, Any]
     water: Dict[str, Any]
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Landslide Susceptibility Screening Schemas (SIH26175)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class LandslideFactorContribution(BaseModel):
+    factor_name: str
+    raw_value: Optional[str] = None
+    normalized_score: float
+    weight_pct: float
+    contribution_level: str  # "High contribution", "Moderate contribution", "Low contribution", "Unavailable"
+    description: str
+
+class LandslideInspection(BaseModel):
+    latitude: float
+    longitude: float
+    elevation: float
+    slope: float
+    aspect: float
+    aspect_cardinal: str
+    profile_curvature: float
+    plan_curvature: float
+    land_cover: str
+    geology_status: str
+    rainfall_status: str
+    susceptibility_score: float
+    risk_class: str  # "VERY LOW", "LOW", "MODERATE", "HIGH", "VERY HIGH"
+    main_contributors: List[LandslideFactorContribution]
+    hotspot_id: Optional[str] = None
+    scientific_disclaimer: str = "This is a baseline screening result based on available terrain/environmental data, NOT an exact landslide prediction or guaranteed failure forecast."
+
+class LandslideInspectionRequest(BaseModel):
+    latitude: float
+    longitude: float
+    bounds: Optional[LatLonBounds] = None
+    data_mode: Optional[str] = "real"
+    scenario: Optional[str] = "normal"
+
+class LandslideHotspot(BaseModel):
+    id: str
+    name: str
+    risk_class: str
+    area_sq_m: float
+    centroid_lat: float
+    centroid_lon: float
+    centroid_x_m: float
+    centroid_z_m: float
+    mean_slope_deg: float
+    max_slope_deg: float
+    mean_susceptibility: float
+    peak_susceptibility: float
+    predominant_aspect: str
+    polygon_bounds: Optional[List[List[float]]] = None
+
+class LandslideBuildingExposure(BaseModel):
+    very_high_count: int
+    high_count: int
+    moderate_count: int
+    low_count: int
+    very_low_count: int
+    total_buildings_screened: int
+
+class LandslideRoadExposure(BaseModel):
+    very_high_km: float
+    high_km: float
+    moderate_km: float
+    low_km: float
+    very_low_km: float
+    total_road_length_km: float
+
+class LandslideModelInfo(BaseModel):
+    model_type: str = "Weighted Overlay Screening"
+    screening_status: str = "Screening Model"
+    data_inputs: Dict[str, str]
+    validation_status: str = "Not independently validated"
+    region_name: Optional[str] = None
+    source_resolution: str = "~30m"
+    analysis_resolution: str = "~30m"
+    weights_used: Dict[str, float]
+    scenario_mode: str = "Normal (Baseline Screening)"
+    scientific_notice: str = "Screening result based on available terrain/environmental data. Configurable baseline model requiring local geotechnical validation."
+
+class LandslideClassStatistics(BaseModel):
+    very_low_pct: float
+    low_pct: float
+    moderate_pct: float
+    high_pct: float
+    very_high_pct: float
+    mean_score: float
+    std_score: float
+    high_risk_area_sq_km: float
+
+class LandslideParameters(BaseModel):
+    weight_slope: Optional[float] = 0.50
+    weight_curvature: Optional[float] = 0.15
+    weight_landcover: Optional[float] = 0.15
+    weight_geology: Optional[float] = 0.10
+    weight_rainfall: Optional[float] = 0.10
+    weight_aspect: Optional[float] = 0.00
+    scenario: Optional[str] = "normal"  # "normal", "heavy", "extreme"
+    slope_thresholds: Optional[List[float]] = [5.0, 15.0, 25.0, 35.0]
+
+class LandslideAnalysisRequest(BaseModel):
+    terrain_id: Optional[str] = None
+    bounds: Optional[LatLonBounds] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    radius: Optional[float] = 2500.0
+    grid_resolution: Optional[int] = 128
+    data_mode: Optional[str] = "real"
+    provider: Optional[str] = "auto"
+    model_type: Optional[str] = "baseline"  # "baseline", "random_forest", "gradient_boosting", "logistic_regression"
+    include_historical_inventory: Optional[bool] = True
+    parameters: Optional[LandslideParameters] = None
+
+# ─── Real Historical Landslide Inventory Schemas ─────────────────────────────
+
+class HistoricalLandslideEvent(BaseModel):
+    id: str
+    latitude: float
+    longitude: float
+    event_date: Optional[str] = None
+    trigger: str = "Monsoon Rainfall"
+    source: str = "NASA Global Landslide Catalog / ISRO Landslide Atlas"
+    source_id: Optional[str] = None
+    inventory_type: str = "Historical Event Catalog"
+    confidence: str = "High (Ground Validated)"
+    area_sq_m: Optional[float] = None
+    citation: Optional[str] = None
+    state_region: Optional[str] = None
+    predicted_risk_class: Optional[str] = None
+    predicted_score: Optional[float] = None
+    is_captured: Optional[bool] = None  # True if predicted HIGH or VERY HIGH
+
+class HistoricalCaptureSummary(BaseModel):
+    total_in_bounds: int
+    captured_count: int      # in High or Very High zones
+    missed_count: int
+    capture_rate_pct: float
+    moderate_count: int
+    low_or_very_low_count: int
+    evaluation_notice: str
+
+class LandslideInventoryResponse(BaseModel):
+    status: str
+    count: int
+    events: List[HistoricalLandslideEvent]
+    bounds: Optional[LatLonBounds] = None
+    sources_summary: Dict[str, int]
+    provenance_notice: str
+
+# ─── Machine Learning Validation & Metrics Schemas ───────────────────────────
+
+class MLModelMetrics(BaseModel):
+    roc_auc: float
+    pr_auc: float
+    precision: float
+    recall: float
+    f1_score: float
+    balanced_accuracy: float
+    brier_score: float
+    validation_method: str = "Spatial Block Cross-Validation (5-Fold Out-of-Sample)"
+    training_sample_count: int
+    positive_samples: int
+    negative_samples: int
+    is_calibrated: bool = True
+    calibration_method: str = "Platt Sigmoid Scaling"
+
+class MLModelComparisonItem(BaseModel):
+    model_id: str
+    model_name: str
+    algorithm: str
+    is_active: bool
+    roc_auc: float
+    pr_auc: float
+    f1_score: float
+    precision: float
+    recall: float
+    brier_score: float
+    validation_strategy: str
+
+class MLTrainingRequest(BaseModel):
+    region_name: Optional[str] = "Western Ghats / Karnataka"
+    bounds: Optional[LatLonBounds] = None
+    algorithms: Optional[List[str]] = ["logistic_regression", "random_forest", "gradient_boosting"]
+    spatial_cv_folds: Optional[int] = 5
+    negative_buffer_m: Optional[float] = 500.0
+    calibrate_probabilities: Optional[bool] = True
+
+class MLTrainingResponse(BaseModel):
+    status: str
+    selected_model: str
+    models_evaluated: List[MLModelComparisonItem]
+    feature_importances: Dict[str, float]
+    training_samples: int
+    spatial_folds: int
+    provenance: Dict[str, Any]
+
+class LandslideAnalysisResponse(BaseModel):
+    status: str
+    terrain_id: Optional[str] = None
+    model_type: str = "baseline"
+    bounds: LatLonBounds
+    metric_bounds: MetricBounds
+    grid_resolution: int
+    risk_grid: List[List[float]]
+    class_grid: List[List[str]]
+    classes: List[str]
+    statistics: LandslideClassStatistics
+    model_info: LandslideModelInfo
+    hotspots: List[LandslideHotspot]
+    building_exposure: LandslideBuildingExposure
+    road_exposure: LandslideRoadExposure
+    water_proximity_notes: Optional[str] = None
+    historical_events: Optional[List[HistoricalLandslideEvent]] = None
+    historical_capture: Optional[HistoricalCaptureSummary] = None
+    ml_metrics: Optional[MLModelMetrics] = None
+    model_comparison: Optional[List[MLModelComparisonItem]] = None
+    feature_importances: Optional[Dict[str, float]] = None
 

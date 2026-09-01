@@ -8,7 +8,14 @@ import {
   ValidationReport, 
   LiDARProcessResponse, 
   EnvironmentLayersResponse,
-  PointInspection
+  PointInspection,
+  LandslideAnalysisResponse,
+  LandslideInspection,
+  LandslideParameters,
+  HistoricalLandslideEvent,
+  LandslideInventoryResponse,
+  MLTrainingRequest,
+  MLTrainingResponse
 } from '../types';
 
 // Support custom backend URL in production (e.g. VITE_API_BASE_URL=https://sih-2026-eqxk.onrender.com)
@@ -179,6 +186,18 @@ export const api = {
     return handleResponse<ImageAnalysisResponse>(res, 'Analyze Image');
   },
 
+  async reconstructFromImage(file: File, resolution: number = 128): Promise<TerrainReconstructResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('grid_resolution', resolution.toString());
+
+    const res = await fetch(`${API_BASE}/image/reconstruct-3d`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<TerrainReconstructResponse>(res, 'Reconstruct 3D from Image');
+  },
+
   async queryElevation(lat: number, lon: number): Promise<{ latitude: number; longitude: number; elevation: number }> {
     const res = await fetch(`${API_BASE}/elevation?lat=${lat}&lon=${lon}`);
     return handleResponse<{ latitude: number; longitude: number; elevation: number }>(res, 'Query Elevation');
@@ -248,5 +267,97 @@ export const api = {
       }),
     });
     return handleResponse<EnvironmentLayersResponse>(res, 'Environment Layers');
+  },
+
+  async runLandslideAnalysis(params: {
+    bounds?: LatLonBounds;
+    latitude?: number;
+    longitude?: number;
+    radius?: number;
+    terrain_id?: string;
+    grid_resolution?: number;
+    data_mode?: 'real' | 'demo';
+    provider?: string;
+    model_type?: 'baseline' | 'random_forest' | 'gradient_boosting' | 'logistic_regression' | string;
+    include_historical_inventory?: boolean;
+    parameters?: LandslideParameters;
+  }): Promise<LandslideAnalysisResponse> {
+    const res = await fetch(`${API_BASE}/analysis/landslide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    return handleResponse<LandslideAnalysisResponse>(res, 'Landslide Susceptibility Analysis');
+  },
+
+  async fetchLandslideInventory(params?: {
+    min_lat?: number;
+    max_lat?: number;
+    min_lon?: number;
+    max_lon?: number;
+    buffer_km?: number;
+  }): Promise<LandslideInventoryResponse> {
+    const query = new URLSearchParams();
+    if (params?.min_lat !== undefined) query.append('min_lat', params.min_lat.toString());
+    if (params?.max_lat !== undefined) query.append('max_lat', params.max_lat.toString());
+    if (params?.min_lon !== undefined) query.append('min_lon', params.min_lon.toString());
+    if (params?.max_lon !== undefined) query.append('max_lon', params.max_lon.toString());
+    if (params?.buffer_km !== undefined) query.append('buffer_km', params.buffer_km.toString());
+
+    const res = await fetch(`${API_BASE}/analysis/landslide/inventory?${query.toString()}`);
+    return handleResponse<LandslideInventoryResponse>(res, 'Fetch Historical Landslide Inventory');
+  },
+
+  async trainLandslideMLModel(request: MLTrainingRequest): Promise<MLTrainingResponse> {
+    const res = await fetch(`${API_BASE}/analysis/landslide/train`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    return handleResponse<MLTrainingResponse>(res, 'Train Landslide ML Model');
+  },
+
+  async fetchLandslideModels(): Promise<any> {
+    const res = await fetch(`${API_BASE}/analysis/landslide/models`);
+    return handleResponse<any>(res, 'Fetch Landslide Models');
+  },
+
+  async inspectLandslidePoint(params: {
+    latitude: number;
+    longitude: number;
+    bounds?: LatLonBounds;
+    data_mode?: string;
+    scenario?: string;
+  }): Promise<LandslideInspection> {
+    const res = await fetch(`${API_BASE}/analysis/landslide/inspect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    return handleResponse<LandslideInspection>(res, 'Inspect Landslide Point');
+  },
+
+  async exportLandslideHotspots(params: {
+    bounds?: LatLonBounds;
+    terrain_id?: string;
+    grid_resolution?: number;
+    data_mode?: 'real' | 'demo';
+    parameters?: LandslideParameters;
+  }): Promise<Blob> {
+    const res = await fetch(`${API_BASE}/analysis/landslide/export`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      let errorDetail = `HTTP ${res.status} (${res.statusText || 'Error'})`;
+      try {
+        const text = await res.text();
+        if (text && text.trim().length > 0) errorDetail = text.slice(0, 300);
+      } catch {}
+      throw new Error(`[Export Hotspots GeoJSON] ${errorDetail} (Status ${res.status})`);
+    }
+    return res.blob();
   }
 };
+

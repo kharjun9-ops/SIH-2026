@@ -12,9 +12,20 @@ import {
   Layers,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  Flame,
+  Info,
+  Sliders
 } from 'lucide-react';
-import { PointInspection, TwoPointMeasurementResponse, InteractionTool, PointValidation } from '../../types';
+import { 
+  PointInspection, 
+  TwoPointMeasurementResponse, 
+  InteractionTool, 
+  PointValidation,
+  LandslideInspection,
+  VisualMode 
+} from '../../types';
 
 interface ElevationPanelProps {
   activeTool: InteractionTool;
@@ -24,6 +35,8 @@ interface ElevationPanelProps {
   measurement: TwoPointMeasurementResponse | null;
   onClearMeasurement: () => void;
   pointValidation?: PointValidation | null;
+  landslideInspection?: LandslideInspection | null;
+  visualMode?: VisualMode;
 }
 
 export const ElevationPanel: React.FC<ElevationPanelProps> = ({
@@ -34,6 +47,8 @@ export const ElevationPanel: React.FC<ElevationPanelProps> = ({
   measurement,
   onClearMeasurement,
   pointValidation,
+  landslideInspection,
+  visualMode,
 }) => {
   return (
     <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-5 shadow-2xl space-y-4">

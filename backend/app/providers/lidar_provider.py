@@ -123,13 +123,22 @@ class LiDARProvider(ElevationProvider):
             grid_z_near = griddata(points, z_coords, (grid_x, grid_y), method='nearest')
             grid_z[nan_mask] = grid_z_near[nan_mask]
 
-        dx_m = max(1.0, (max_x - min_x) * 111320.0)
-        dy_m = max(1.0, (max_y - min_y) * 111320.0)
+        # Compute real covered area in meters
+        if (max_x - min_x) < 5.0:  # Geographic coordinates (degrees)
+            mid_lat = float((min_y + max_y) / 2.0)
+            dx_m = max(1.0, float((max_x - min_x) * 111320.0 * math.cos(math.radians(mid_lat))))
+            dy_m = max(1.0, float((max_y - min_y) * 111320.0))
+        else:  # Projected metric coordinates (meters)
+            dx_m = max(1.0, float(max_x - min_x))
+            dy_m = max(1.0, float(max_y - min_y))
+
         area_sq_m = max(1.0, dx_m * dy_m)
         point_count = len(z_coords)
         point_density = point_count / area_sq_m
-        est_spacing_m = math.sqrt(1.0 / max(1e-4, point_density))
-        has_ground_class = classifications is not None and np.any(classifications == 2)
+        est_spacing_m = math.sqrt(1.0 / max(1e-6, point_density))
+        has_ground_class = (classifications is not None) and bool(np.any(classifications == 2))
+
+        accuracy_stmt = "Source accuracy specification unavailable; reported values are derived from the uploaded LiDAR dataset."
 
         meta = {
             "source": self.get_source_name(),
@@ -145,10 +154,11 @@ class LiDARProvider(ElevationProvider):
             "elevation_type": "Bare-Earth DTM (Class 2 Ground Filtered)" if mode == "dtm" else "Digital Surface Model (DSM)",
             "vertical_accuracy": "Survey Grade (Accuracy depends on source LiDAR survey specifications and sensor calibration)",
             "point_count": point_count,
-            "point_density_sq_m": round(point_density, 3),
-            "point_spacing_m": round(est_spacing_m, 2),
+            "covered_area_sq_m": round(area_sq_m, 2),
+            "point_density_sq_m": round(point_density, 4),
+            "point_spacing_m": round(est_spacing_m, 3),
             "has_ground_classification": bool(has_ground_class),
-            "accuracy_statement": "Accuracy depends on the source LiDAR survey specifications, flight altitude, and calibration.",
+            "accuracy_statement": accuracy_stmt,
             "interpolation_method": "TIN / Delaunay Linear Triangulation Resampling",
             "resolution_transparency_note": f"Rasterized at {resolution}x{resolution} grid spacing from {point_count:,} LiDAR pulses."
         }

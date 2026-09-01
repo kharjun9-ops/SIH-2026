@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   Mountain, 
@@ -12,10 +12,17 @@ import {
   CheckCircle2,
   Sparkles,
   ShieldCheck,
-  Database
+  Database,
+  AlertTriangle,
+  Flame,
+  Download,
+  RefreshCw,
+  Building2,
+  Route
 } from 'lucide-react';
-import { TerrainReconstructResponse, SampleRegion } from '../types';
+import { TerrainReconstructResponse, SampleRegion, LandslideAnalysisResponse } from '../types';
 import { AnalysisPanel } from '../components/AnalysisPanel/AnalysisPanel';
+import { api } from '../services/api';
 
 interface AnalysisProps {
   terrainData: TerrainReconstructResponse | null;
@@ -30,6 +37,49 @@ export const Analysis: React.FC<AnalysisProps> = ({
   onSelectSample,
   onNavigateToReconstruct,
 }) => {
+  const [landslideData, setLandslideData] = useState<LandslideAnalysisResponse | null>(null);
+  const [landslideLoading, setLandslideLoading] = useState<boolean>(false);
+  const [isExportingGeoJson, setIsExportingGeoJson] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (terrainData) {
+      setLandslideLoading(true);
+      api.runLandslideAnalysis({
+        bounds: terrainData.bounds,
+        terrain_id: terrainData.terrain_id,
+        grid_resolution: terrainData.grid_resolution,
+        provider: terrainData.provider_used,
+      })
+      .then((data) => setLandslideData(data))
+      .catch((err) => console.error('Failed to load landslide analysis:', err))
+      .finally(() => setLandslideLoading(false));
+    }
+  }, [terrainData]);
+
+  const handleExportGeoJson = async () => {
+    if (!terrainData) return;
+    setIsExportingGeoJson(true);
+    try {
+      const blob = await api.exportLandslideHotspots({
+        bounds: terrainData.bounds,
+        terrain_id: terrainData.terrain_id,
+        grid_resolution: terrainData.grid_resolution,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `landslide_hotspots_${terrainData.region_name?.replace(/\s+/g, '_') || 'region'}.geojson`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('GeoJSON export failed:', err);
+    } finally {
+      setIsExportingGeoJson(false);
+    }
+  };
+
   if (!terrainData) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6">
@@ -106,6 +156,247 @@ export const Analysis: React.FC<AnalysisProps> = ({
         gridResolution={terrainData.grid_resolution}
       />
 
+      {/* ─── Landslide Susceptibility & Exposure Screening Section ─── */}
+      <div className="p-6 rounded-2xl bg-[#0d121f] border border-amber-500/40 space-y-6 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white tracking-tight">Landslide Susceptibility & Exposure Screening</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 font-mono">
+                  Screening Model
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Multi-criteria GIS screening model combining physical DEM slope, curvature, and land cover evidence.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportGeoJson}
+              disabled={isExportingGeoJson || !landslideData?.hotspots.length}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/40 text-amber-300 text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <Download className={`w-3.5 h-3.5 ${isExportingGeoJson ? 'animate-bounce' : ''}`} />
+              <span>Export Hotspots GeoJSON</span>
+            </button>
+          </div>
+        </div>
+
+        {landslideLoading && (
+          <div className="py-12 text-center space-y-2 font-mono text-sm text-slate-400">
+            <RefreshCw className="w-6 h-6 text-amber-400 animate-spin mx-auto" />
+            <div>Calculating Landslide Susceptibility & Curvature matrices...</div>
+          </div>
+        )}
+
+        {!landslideLoading && landslideData && (
+          <div className="space-y-6">
+
+            {/* 3. Machine Learning Benchmark & Spatial Validation Table */}
+            {landslideData.model_comparison && landslideData.model_comparison.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-slate-300 font-medium font-mono flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    <span>Machine Learning Model Benchmark (5-Fold Spatial Cross-Validation):</span>
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">Held-out Spatial Partitioning (Zero Pixel Leakage)</span>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-xs font-mono text-left">
+                    <thead className="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800">
+                      <tr>
+                        <th className="py-2.5 px-3">Algorithm</th>
+                        <th className="py-2.5 px-3">ROC-AUC</th>
+                        <th className="py-2.5 px-3">PR-AUC</th>
+                        <th className="py-2.5 px-3">Precision</th>
+                        <th className="py-2.5 px-3">Recall</th>
+                        <th className="py-2.5 px-3">F1-Score</th>
+                        <th className="py-2.5 px-3">Brier Score</th>
+                        <th className="py-2.5 px-3">Validation Protocol</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900 bg-slate-950/60">
+                      {landslideData.model_comparison.map((item) => (
+                        <tr key={item.model_id} className={`hover:bg-slate-900/80 transition-colors ${item.is_active ? 'bg-cyan-950/30' : ''}`}>
+                          <td className="py-2.5 px-3 font-bold flex items-center gap-2">
+                            {item.is_active && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
+                            <span className={item.is_active ? 'text-cyan-300' : 'text-slate-300'}>{item.model_name}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-emerald-400 font-bold">{item.roc_auc.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-cyan-300">{item.pr_auc.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-slate-300">{item.precision.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-slate-300">{item.recall.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-amber-300 font-bold">{item.f1_score.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-slate-400">{item.brier_score.toFixed(3)}</td>
+                          <td className="py-2.5 px-3 text-slate-500 text-[10px]">{item.validation_strategy}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Feature Importance Breakdown */}
+            {landslideData.feature_importances && (
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3 font-mono">
+                <div className="flex items-center justify-between text-xs text-slate-300 font-bold pb-2 border-b border-slate-900">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-cyan-400" />
+                    Feature Importance Ranking (Permutation & Impurity)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-normal">Relative contribution to susceptibility model</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs">
+                  {Object.entries(landslideData.feature_importances).map(([fname, imp]) => (
+                    <div key={fname} className="p-2 rounded bg-slate-900 border border-slate-800 space-y-1">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-400">{fname.replace('_', ' ')}:</span>
+                        <strong className="text-cyan-300">{(imp * 100).toFixed(1)}%</strong>
+                      </div>
+                      <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full" style={{ width: `${Math.min(100, imp * 300)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 5. Real Historical Landslide Inventory Catalog Table */}
+            {landslideData.historical_events && landslideData.historical_events.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-slate-300 font-medium font-mono flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-rose-500" />
+                    <span>Real Historical Landslide Events (NASA GLC & ISRO Landslide Atlas):</span>
+                  </label>
+                  {landslideData.historical_capture && (
+                    <span className="text-xs font-mono font-bold text-emerald-400">
+                      Captured: {landslideData.historical_capture.captured_count}/{landslideData.historical_capture.total_in_bounds} ({landslideData.historical_capture.capture_rate_pct}%)
+                    </span>
+                  )}
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-xs font-mono text-left">
+                    <thead className="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800">
+                      <tr>
+                        <th className="py-2.5 px-3">Catalog ID</th>
+                        <th className="py-2.5 px-3">Region / Location</th>
+                        <th className="py-2.5 px-3">Event Date</th>
+                        <th className="py-2.5 px-3">Trigger Mechanism</th>
+                        <th className="py-2.5 px-3">Confidence</th>
+                        <th className="py-2.5 px-3">Source Provenance</th>
+                        <th className="py-2.5 px-3">Predicted Class</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900 bg-slate-950/60">
+                      {landslideData.historical_events.map((ev) => (
+                        <tr key={ev.id} className="hover:bg-slate-900/80 transition-colors">
+                          <td className="py-2.5 px-3 font-bold text-rose-300 flex items-center gap-1.5">
+                            <Flame className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            <span>{ev.id}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-300">{ev.state_region || 'Study Domain'}</td>
+                          <td className="py-2.5 px-3 text-slate-400">{ev.event_date || 'Historical'}</td>
+                          <td className="py-2.5 px-3 text-slate-300">{ev.trigger}</td>
+                          <td className="py-2.5 px-3 text-emerald-400 font-semibold">{ev.confidence}</td>
+                          <td className="py-2.5 px-3 text-slate-400 text-[10px]">{ev.source}</td>
+                          <td className="py-2.5 px-3">
+                            {ev.predicted_risk_class ? (
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                ev.is_captured ? 'bg-emerald-950 text-emerald-300 border border-emerald-500' : 'bg-amber-950 text-amber-300 border border-amber-500'
+                              }`}>
+                                {ev.predicted_risk_class} ({ev.predicted_score}) {ev.is_captured ? '✓ Captured' : '— Missed'}
+                              </span>
+                            ) : (
+                              <span className="text-slate-500 text-[10px]">Buffer Extent</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 6. Hotspot Clusters Table */}
+            {landslideData.hotspots.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-slate-300 font-medium font-mono">
+                    Detected Hotspot Clusters ({landslideData.hotspots.length}):
+                  </label>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-xs font-mono text-left">
+                    <thead className="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800">
+                      <tr>
+                        <th className="py-2.5 px-3">Hotspot ID</th>
+                        <th className="py-2.5 px-3">Risk Class</th>
+                        <th className="py-2.5 px-3">Area (m²)</th>
+                        <th className="py-2.5 px-3">Mean Slope</th>
+                        <th className="py-2.5 px-3">Max Slope</th>
+                        <th className="py-2.5 px-3">Peak Score</th>
+                        <th className="py-2.5 px-3">Centroid (Lat, Lon)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-900 bg-slate-950/60">
+                      {landslideData.hotspots.map((hs) => (
+                        <tr key={hs.id} className="hover:bg-slate-900/80 transition-colors">
+                          <td className="py-2.5 px-3 text-white font-bold">{hs.name}</td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              hs.risk_class === 'VERY HIGH'
+                                ? 'bg-rose-950 text-rose-300 border border-rose-500'
+                                : 'bg-orange-950 text-orange-300 border border-orange-500'
+                            }`}>
+                              {hs.risk_class}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-300">{hs.area_sq_m.toLocaleString()} m²</td>
+                          <td className="py-2.5 px-3 text-amber-300">{hs.mean_slope_deg}°</td>
+                          <td className="py-2.5 px-3 text-rose-400">{hs.max_slope_deg}°</td>
+                          <td className="py-2.5 px-3 text-cyan-300 font-bold">{hs.peak_susceptibility}</td>
+                          <td className="py-2.5 px-3 text-slate-400">{hs.centroid_lat.toFixed(5)}°, {hs.centroid_lon.toFixed(5)}°</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 7. Model Lineage & Scientific Notice */}
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2 text-xs font-mono">
+              <div className="flex items-center justify-between text-slate-400 text-[11px] pb-1 border-b border-slate-900">
+                <span>MODEL LINEAGE & DATA PROVENANCE</span>
+                <span className="text-cyan-400">{landslideData.model_info.validation_status}</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-slate-300">
+                <div>Model: <strong className="text-cyan-400">{landslideData.model_info.model_type}</strong></div>
+                <div>Elevation/Slope: <strong className="text-emerald-400">Copernicus DEM (30m) ✓</strong></div>
+                <div>Inventory: <strong className="text-emerald-400">NASA GLC / ISRO LAI ✓</strong></div>
+                <div>Validation: <strong className="text-emerald-400">Spatial Block CV ✓</strong></div>
+              </div>
+              <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-900 italic">
+                {landslideData.model_info.scientific_notice}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Deep Topographic Breakdown Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
@@ -163,9 +454,9 @@ export const Analysis: React.FC<AnalysisProps> = ({
             </div>
 
             <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-0.5">
-              <span className="text-[10px] text-slate-500 block">ASPECT (COMPASS HEADING)</span>
+              <span className="text-[10px] text-slate-500 block">PROFILE & PLAN CURVATURE (FINITE DIFFERENCE)</span>
               <div className="text-cyan-300 font-semibold">
-                Aspect = 90° - atan2(∂z/∂y, -∂z/∂x) mod 360°
+                K_prof = -(p²r + 2pqs + q²t) / (p²+q²)(1+p²+q²)^{3/2}
               </div>
             </div>
 

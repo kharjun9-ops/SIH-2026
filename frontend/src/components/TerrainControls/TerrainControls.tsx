@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { 
   Sliders, 
   Layers, 
@@ -15,9 +16,15 @@ import {
   Compass,
   Building2,
   Route,
-  Droplets
+  Droplets,
+  AlertTriangle,
+  Flame,
+  ShieldAlert,
+  Info,
+  Settings2,
+  RefreshCw
 } from 'lucide-react';
-import { VisualMode, ColormapMode, LayerVisibility } from '../../types';
+import { VisualMode, ColormapMode, LayerVisibility, LandslideAnalysisResponse } from '../../types';
 
 interface TerrainControlsProps {
   exaggeration: number;
@@ -48,6 +55,15 @@ interface TerrainControlsProps {
   onToggleColorBySource?: () => void;
   environmentLoading?: boolean;
   environmentAvailable?: boolean;
+  landslideData?: LandslideAnalysisResponse | null;
+  onRunLandslideAnalysis?: (scenario?: 'normal' | 'heavy' | 'extreme', modelType?: string) => void;
+  landslideScenario?: 'normal' | 'heavy' | 'extreme';
+  onScenarioChange?: (scenario: 'normal' | 'heavy' | 'extreme') => void;
+  landslideLoading?: boolean;
+  landslideModelType?: string;
+  onModelTypeChange?: (modelType: string) => void;
+  showHistoricalLandslides?: boolean;
+  onToggleHistoricalLandslides?: () => void;
 }
 
 export const TerrainControls: React.FC<TerrainControlsProps> = ({
@@ -79,7 +95,18 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
   onToggleColorBySource,
   environmentLoading = false,
   environmentAvailable = false,
+  landslideData,
+  onRunLandslideAnalysis,
+  landslideScenario = 'normal',
+  onScenarioChange,
+  landslideLoading = false,
+  landslideModelType = 'random_forest',
+  onModelTypeChange,
+  showHistoricalLandslides = true,
+  onToggleHistoricalLandslides,
 }) => {
+  const [showWeightsDetail, setShowWeightsDetail] = useState(false);
+
   return (
     <div className="bg-[#0d121f] rounded-2xl border border-slate-800/80 p-5 shadow-2xl space-y-5">
       
@@ -96,19 +123,19 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
         </span>
       </div>
 
-      {/* 1. The 7 Material Modes Selector */}
+      {/* 1. Terrain Material & Analysis Modes Selector */}
       <div className="space-y-2">
         <label className="text-xs text-slate-300 font-medium flex items-center justify-between">
           <span className="flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            7 Terrain Visualization Modes:
+            Terrain Analysis & Material Modes:
           </span>
           <span className="text-[10px] font-mono text-cyan-400 font-semibold uppercase">
             {visualMode}
           </span>
         </label>
         
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-[11px] font-semibold">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-[11px] font-semibold">
           
           <button
             onClick={() => onVisualModeChange('elevation')}
@@ -166,6 +193,23 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
           </button>
 
           <button
+            onClick={() => {
+              onVisualModeChange('landslide');
+              if (onRunLandslideAnalysis && !landslideData) {
+                onRunLandslideAnalysis(landslideScenario);
+              }
+            }}
+            className={`py-1.5 px-2 rounded-lg transition-all text-center truncate flex items-center justify-center gap-1 ${
+              visualMode === 'landslide'
+                ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/30'
+                : 'text-amber-400 hover:text-amber-200 border border-amber-500/30 bg-amber-950/20'
+            }`}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            <span>Landslide</span>
+          </button>
+
+          <button
             onClick={() => onVisualModeChange('wireframe')}
             className={`py-1.5 px-2 rounded-lg transition-all text-center truncate ${
               visualMode === 'wireframe'
@@ -178,17 +222,185 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
 
           <button
             onClick={() => onVisualModeChange('pointcloud')}
-            className={`py-1.5 px-2 rounded-lg transition-all text-center truncate col-span-2 ${
+            className={`py-1.5 px-2 rounded-lg transition-all text-center truncate ${
               visualMode === 'pointcloud'
                 ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            3D Point Cloud
+            Point Cloud
           </button>
 
         </div>
       </div>
+
+      {/* ─── Landslide Susceptibility & Machine Learning Framework ─── */}
+      {(visualMode === 'landslide' || landslideData) && (
+        <div className="p-3.5 bg-gradient-to-br from-[#121829] to-[#0d121f] rounded-2xl border border-amber-500/40 space-y-3 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <span>LANDSLIDE SUSCEPTIBILITY</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={`text-[9px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                landslideModelType && landslideModelType !== 'baseline'
+                  ? 'bg-cyan-950 border border-cyan-500/40 text-cyan-300'
+                  : 'bg-amber-950/80 border border-amber-500/40 text-amber-300'
+              }`}>
+                {landslideModelType && landslideModelType !== 'baseline' ? 'ML Framework' : 'Screening Model'}
+              </span>
+            </div>
+          </div>
+
+          {/* Model Architecture Selector (Baseline vs ML) */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] text-slate-300 font-medium flex items-center justify-between">
+              <span>Model Architecture:</span>
+              <span className="text-[10px] text-cyan-400 font-mono">
+                {landslideData?.ml_metrics ? `ROC-AUC: ${landslideData.ml_metrics.roc_auc.toFixed(2)}` : 'Heuristic'}
+              </span>
+            </label>
+            <div className="grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px] font-mono font-bold">
+              <button
+                onClick={() => {
+                  if (onModelTypeChange) onModelTypeChange('baseline');
+                  if (onRunLandslideAnalysis) onRunLandslideAnalysis(landslideScenario, 'baseline');
+                }}
+                className={`py-1.5 rounded-lg transition-all text-center ${
+                  !landslideModelType || landslideModelType === 'baseline'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Baseline MCE
+              </button>
+              <button
+                onClick={() => {
+                  if (onModelTypeChange) onModelTypeChange('random_forest');
+                  if (onRunLandslideAnalysis) onRunLandslideAnalysis(landslideScenario, 'random_forest');
+                }}
+                className={`py-1.5 rounded-lg transition-all text-center ${
+                  landslideModelType === 'random_forest'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                ML Random Forest
+              </button>
+            </div>
+          </div>
+
+          {/* Real Historical Landslides Overlay Toggle */}
+          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <span className="text-slate-300 flex items-center gap-1.5 text-[11px]">
+              <Flame className="w-3.5 h-3.5 text-rose-400" />
+              <span>Real Historical Landslides</span>
+            </span>
+            <button
+              onClick={onToggleHistoricalLandslides}
+              className={`w-9 h-4.5 rounded-full p-0.5 transition-colors ${
+                showHistoricalLandslides ? 'bg-rose-500' : 'bg-slate-800'
+              }`}
+            >
+              <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${showHistoricalLandslides ? 'translate-x-4.5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+
+          {/* Historical Capture Banner */}
+          {showHistoricalLandslides && landslideData?.historical_capture && (
+            <div className="p-2 rounded-xl bg-slate-950 border border-rose-500/30 text-[10px] font-mono space-y-1">
+              <div className="flex items-center justify-between text-slate-300">
+                <span>NASA/ISRO Capture Rate:</span>
+                <strong className={landslideData.historical_capture.capture_rate_pct >= 75 ? 'text-emerald-400' : 'text-amber-400'}>
+                  {landslideData.historical_capture.captured_count}/{landslideData.historical_capture.total_in_bounds} ({landslideData.historical_capture.capture_rate_pct}%)
+                </strong>
+              </div>
+              <p className="text-[9px] text-slate-500 leading-tight">
+                {landslideData.historical_capture.evaluation_notice}
+              </p>
+            </div>
+          )}
+
+          {/* Scenario Mode Dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] text-slate-300 font-medium flex items-center justify-between">
+              <span>What-If Rainfall Scenario:</span>
+              <span className="text-[10px] text-amber-400 font-mono font-semibold">
+                {landslideScenario === 'normal' && 'Baseline 1.0×'}
+                {landslideScenario === 'heavy' && 'Heavy (+25%)'}
+                {landslideScenario === 'extreme' && 'Extreme (+50%)'}
+              </span>
+            </label>
+            <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px] font-mono font-bold">
+              {(['normal', 'heavy', 'extreme'] as const).map((sc) => (
+                <button
+                  key={sc}
+                  onClick={() => {
+                    if (onScenarioChange) onScenarioChange(sc);
+                    if (onRunLandslideAnalysis) onRunLandslideAnalysis(sc, landslideModelType);
+                  }}
+                  className={`py-1.5 rounded-lg transition-all text-center capitalize ${
+                    landslideScenario === sc
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {sc}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Model Lineage / Feature Checklist */}
+          <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-[11px] font-mono">
+            <div className="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-900 text-[10px]">
+              <span>FEATURE / DATA</span>
+              <span>PROVENANCE</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Elevation / Slope</span>
+              <strong className="text-emerald-400">REAL / DERIVED ✓</strong>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Curvatures & TPI/TRI</span>
+              <strong className="text-emerald-400">DERIVED ✓</strong>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Drainage / Road Proximity</span>
+              <strong className="text-emerald-400">DERIVED ✓</strong>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Land Cover (OSM)</span>
+              <strong className="text-emerald-400">REAL ✓</strong>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Historical Inventory</span>
+              <strong className="text-emerald-400">REAL (NASA/ISRO) ✓</strong>
+            </div>
+            <div className="flex items-center justify-between text-slate-300">
+              <span>Geology & Soil Strata</span>
+              <strong className="text-slate-500">UNAVAILABLE —</strong>
+            </div>
+          </div>
+
+          {/* Calculate / Refresh Button */}
+          {onRunLandslideAnalysis && (
+            <button
+              onClick={() => onRunLandslideAnalysis(landslideScenario, landslideModelType)}
+              disabled={landslideLoading}
+              className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${landslideLoading ? 'animate-spin' : ''}`} />
+              <span>{landslideLoading ? 'Training & Evaluating...' : (landslideModelType !== 'baseline' ? 'Run ML Susceptibility Model' : 'Recalculate Baseline MCE')}</span>
+            </button>
+          )}
+
+          <div className="text-[9px] text-slate-500 text-center italic">
+            Screening & ML susceptibility result. Not a substitute for a geotechnical site investigation.
+          </div>
+        </div>
+      )}
 
       {/* 2. Elevation Exaggeration (1.0x Default) */}
       <div className="space-y-2">

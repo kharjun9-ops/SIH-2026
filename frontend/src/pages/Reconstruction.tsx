@@ -37,13 +37,17 @@ import {
   LayerVisibility,
   BuildingFeature,
   RoadFeature,
-  WaterFeature
+  WaterFeature,
+  LandslideAnalysisResponse,
+  LandslideInspection,
+  LandslideHotspot
 } from '../types';
 import { MapPicker } from '../components/Map/MapPicker';
 import { ImageUploader } from '../components/ImageUploader/ImageUploader';
 import { TerrainCanvas } from '../components/TerrainViewer/TerrainCanvas';
 import { TerrainControls } from '../components/TerrainControls/TerrainControls';
 import { AnalysisPanel } from '../components/AnalysisPanel/AnalysisPanel';
+import { ElevationPanel } from '../components/ElevationPanel/ElevationPanel';
 import { TerrainProfileModal } from '../components/TerrainViewer/TerrainProfileModal';
 import { AccuracyModal } from '../components/ValidationPanel/AccuracyModal';
 import { api } from '../services/api';
@@ -64,6 +68,7 @@ interface ReconstructionProps {
   dataMode: 'real' | 'demo';
   onDataModeChange: (mode: 'real' | 'demo') => void;
   onImageAnalyzed: (analysis: ImageAnalysisResponse) => void;
+  onSetTerrainData?: (data: TerrainReconstructResponse) => void;
   onNavigateToStudio: () => void;
 }
 
@@ -82,6 +87,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   dataMode = 'real',
   onDataModeChange,
   onImageAnalyzed,
+  onSetTerrainData,
   onNavigateToStudio,
 }) => {
   const [inputTab, setInputTab] = useState<'map' | 'coords' | 'image' | 'lidar'>('map');
@@ -138,6 +144,73 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   const [selectedWater, setSelectedWater] = useState<WaterFeature | null>(null);
   const [showEnvironmentBreakdown, setShowEnvironmentBreakdown] = useState<boolean>(false);
 
+  // Landslide Susceptibility State
+  const [landslideData, setLandslideData] = useState<LandslideAnalysisResponse | null>(null);
+  const [landslideLoading, setLandslideLoading] = useState<boolean>(false);
+  const [landslideScenario, setLandslideScenario] = useState<'normal' | 'heavy' | 'extreme'>('normal');
+  const [landslideInspection, setLandslideInspection] = useState<LandslideInspection | null>(null);
+
+  const handleRunLandslideAnalysis = async (scenario: 'normal' | 'heavy' | 'extreme' = landslideScenario) => {
+    if (!terrainData) return;
+    setLandslideLoading(true);
+    try {
+      const resp = await api.runLandslideAnalysis({
+        bounds: terrainData.bounds,
+        terrain_id: terrainData.terrain_id,
+        grid_resolution: terrainData.grid_resolution,
+        provider: terrainData.provider_used,
+        parameters: { scenario }
+      });
+      setLandslideData(resp);
+    } catch (err) {
+      console.error('Failed to run landslide analysis:', err);
+    } finally {
+      setLandslideLoading(false);
+    }
+  };
+
+  const handleSelectPointWithLandslide = async (pt: PointInspection | null) => {
+    setSelectedPoint(pt);
+    if (!pt || !terrainData) {
+      setLandslideInspection(null);
+      return;
+    }
+    try {
+      const inspectRes = await api.inspectLandslidePoint({
+        latitude: pt.latitude,
+        longitude: pt.longitude,
+        bounds: terrainData.bounds,
+        scenario: landslideScenario
+      });
+      setLandslideInspection(inspectRes);
+    } catch (err) {
+      console.error('Failed to inspect landslide point:', err);
+    }
+  };
+
+  const handleHotspotClick = (hs: LandslideHotspot) => {
+    handleSelectPointWithLandslide({
+      elevation: 0,
+      slope: hs.mean_slope_deg,
+      aspect: 0,
+      aspect_cardinal: 'N',
+      latitude: hs.centroid_lat,
+      longitude: hs.centroid_lon,
+      grid_x: 0,
+      grid_y: 0,
+      x_metric_m: hs.centroid_x_m,
+      y_metric_m: hs.centroid_z_m,
+      source: terrainData?.provider_used || 'Copernicus DEM GLO-30',
+      source_type: 'DSM',
+      native_resolution: '~30m',
+      vertical_datum: 'EGM96 / EGM2008',
+      sampling_method: 'Hotspot Centroid Inspection',
+      coordinate_system: 'EPSG:4326',
+      measurement_quality: 'Hotspot Screening Cluster',
+      accuracy_statement: `Screening hotspot ${hs.name} (${hs.risk_class} risk)`
+    });
+  };
+
   const handleApplyCoordinates = (e: React.FormEvent) => {
     e.preventDefault();
     setShowEnvironmentBreakdown(false);
@@ -150,7 +223,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
     const latDelta = rad / 111320.0;
     const lonDelta = rad / (111320.0 * Math.max(0.01, Math.cos((lat * Math.PI) / 180)));
 
-    onLocationChange(lat, lon, rad, {
+    const newBounds = {
       min_lat: Number((lat - latDelta).toFixed(6)),
       max_lat: Number((lat + latDelta).toFixed(6)),
       min_lon: Number((lon - lonDelta).toFixed(6)),
@@ -158,6 +231,15 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
       center_lat: lat,
       center_lon: lon,
       radius_meters: rad,
+    };
+
+    onLocationChange(lat, lon, rad, newBounds);
+    onReconstruct({
+      latitude: lat,
+      longitude: lon,
+      radius: rad,
+      bounds: newBounds,
+      data_mode: dataMode
     });
   };
 
@@ -204,16 +286,29 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
     try {
       const res = await api.processLiDARFile(file, 'dtm', 128);
       setLidarResult(res);
+      const midLat = (res.bounds.min_lat + res.bounds.max_lat) / 2.0;
+      const midLon = (res.bounds.min_lon + res.bounds.max_lon) / 2.0;
       onLocationChange(
-        (res.bounds.min_lat + res.bounds.max_lat) / 2.0,
-        (res.bounds.min_lon + res.bounds.max_lon) / 2.0,
+        midLat,
+        midLon,
         2500,
         res.bounds
       );
+      // Immediately reconstruct 3D terrain from uploaded LiDAR DTM
+      if (onReconstruct) {
+        onReconstruct({
+          bounds: res.bounds,
+          latitude: midLat,
+          longitude: midLon,
+          provider: 'lidar',
+          data_mode: 'real',
+        });
+      }
     } catch (err: any) {
       alert(err.message || 'LiDAR upload failed');
     } finally {
       setLidarLoading(false);
+      e.target.value = '';
     }
   };
 
@@ -371,18 +466,63 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
               onReconstruct({ contour_interval_m: contourInterval, hillshade_intensity: hillshadeIntensity, data_mode: dataMode });
             }}
             isLoading={isLoading}
+            landslideData={landslideData}
+            onSelectHotspot={handleHotspotClick}
           />
         </div>
       )}
 
       {inputTab === 'coords' && (
         <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 shadow-2xl space-y-4">
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-cyan-400" />
-            Enter Exact Latitude & Longitude Coordinates
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-cyan-400" />
+              <span>Enter Exact Coordinates & Reconstruct</span>
+            </h3>
+            <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60">
+              Copernicus GLO-30 / SRTM 30m Global DEM
+            </span>
+          </div>
 
-          <form onSubmit={handleApplyCoordinates} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Quick Preset Location Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-[11px] text-slate-400 font-mono">Quick Benchmarks:</span>
+            {[
+              { name: 'Mt. Everest (Himalayas)', lat: 27.9881, lon: 86.9250, r: 4000 },
+              { name: 'Grand Canyon (USA)', lat: 36.1069, lon: -112.1129, r: 3500 },
+              { name: 'Wayanad High-Risk (India)', lat: 11.5380, lon: 76.1320, r: 2500 },
+              { name: 'Matterhorn (Alps)', lat: 45.9763, lon: 7.6586, r: 3000 },
+              { name: 'Mount Fuji (Japan)', lat: 35.3606, lon: 138.7274, r: 5000 },
+            ].map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                onClick={() => {
+                  setCustomLat(p.lat.toString());
+                  setCustomLon(p.lon.toString());
+                  setCustomRadius(p.r.toString());
+                  const latDelta = p.r / 111320.0;
+                  const lonDelta = p.r / (111320.0 * Math.max(0.01, Math.cos((p.lat * Math.PI) / 180)));
+                  const nb = {
+                    min_lat: Number((p.lat - latDelta).toFixed(6)),
+                    max_lat: Number((p.lat + latDelta).toFixed(6)),
+                    min_lon: Number((p.lon - lonDelta).toFixed(6)),
+                    max_lon: Number((p.lon + lonDelta).toFixed(6)),
+                    center_lat: p.lat,
+                    center_lon: p.lon,
+                    radius_meters: p.r,
+                  };
+                  onLocationChange(p.lat, p.lon, p.r, nb);
+                  onReconstruct({ latitude: p.lat, longitude: p.lon, radius: p.r, bounds: nb, data_mode: dataMode });
+                }}
+                className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/40 rounded-lg text-[11px] font-mono text-slate-300 hover:text-cyan-300 transition-colors"
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleApplyCoordinates} className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div>
               <label className="text-xs font-medium text-slate-400 block mb-1">
                 Latitude (-90 to +90)
@@ -430,9 +570,11 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
             <div className="sm:col-span-3 flex justify-end gap-3 pt-2 border-t border-slate-800">
               <button
                 type="submit"
-                className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-colors"
+                disabled={isLoading}
+                className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                Update Selected Location
+                <Sparkles className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Reconstructing Real 3D DEM...' : '⚡ Reconstruct 3D Model From Coordinates'}</span>
               </button>
             </div>
           </form>
@@ -444,9 +586,22 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
           onImageAnalyzed={onImageAnalyzed}
           samples={samples}
           onUseSampleImage={onSelectSample}
+          onReconstructFromImage={onSetTerrainData}
           onApplyImageCoordinates={(lat, lon) => {
-            onLocationChange(lat, lon, radiusMeters, bounds);
-            setInputTab('map');
+            const rad = radiusMeters || 2500;
+            const latDelta = rad / 111320.0;
+            const lonDelta = rad / (111320.0 * Math.max(0.01, Math.cos((lat * Math.PI) / 180)));
+            const nb = {
+              min_lat: Number((lat - latDelta).toFixed(6)),
+              max_lat: Number((lat + latDelta).toFixed(6)),
+              min_lon: Number((lon - lonDelta).toFixed(6)),
+              max_lon: Number((lon + lonDelta).toFixed(6)),
+              center_lat: lat,
+              center_lon: lon,
+              radius_meters: rad,
+            };
+            onLocationChange(lat, lon, rad, nb);
+            onReconstruct({ latitude: lat, longitude: lon, radius: rad, bounds: nb, data_mode: dataMode });
           }}
         />
       )}
@@ -488,16 +643,58 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
           </div>
 
           {lidarResult && (
-            <div className="p-4 bg-slate-950 rounded-xl border border-emerald-500/40 space-y-2 text-xs font-mono">
-              <div className="text-emerald-400 font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
-                LiDAR Point Cloud Processed: {lidarResult.file_name} ({lidarResult.point_count.toLocaleString()} points)
+            <div className="p-4 bg-slate-950 rounded-xl border border-emerald-500/40 space-y-2.5 text-xs font-mono">
+              <div className="flex items-center justify-between text-emerald-400 font-bold border-b border-slate-900 pb-2">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  LiDAR Point Cloud Processed: {lidarResult.file_name} ({lidarResult.point_count.toLocaleString()} points)
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
+                  {lidarResult.has_ground_classification ? 'ASPRS Class 2 Ground Filtered' : 'Unclassified Cloud'}
+                </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-slate-300">
-                <div>Min Elev: <strong>{lidarResult.elevation_stats.min_z}m</strong></div>
-                <div>Max Elev: <strong>{lidarResult.elevation_stats.max_z}m</strong></div>
-                <div>Relief: <strong>{lidarResult.elevation_stats.range_z}m</strong></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-300 text-[11px]">
+                <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                  <span className="text-[9px] text-slate-500 block">POINT DENSITY</span>
+                  <strong className="text-cyan-300">{lidarResult.point_density_sq_m.toFixed(4)} pts/m²</strong>
+                </div>
+                <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                  <span className="text-[9px] text-slate-500 block">NOMINAL SPACING</span>
+                  <strong className="text-cyan-300">~{lidarResult.point_spacing_m.toFixed(2)} m</strong>
+                </div>
+                <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                  <span className="text-[9px] text-slate-500 block">ELEVATION RANGE</span>
+                  <strong className="text-emerald-300">{lidarResult.elevation_stats.min_z}m to {lidarResult.elevation_stats.max_z}m</strong>
+                </div>
+                <div className="p-2 rounded bg-slate-900 border border-slate-800">
+                  <span className="text-[9px] text-slate-500 block">VERTICAL RELIEF</span>
+                  <strong className="text-amber-300">{lidarResult.elevation_stats.range_z} m</strong>
+                </div>
               </div>
+              <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-900 italic">
+                {lidarResult.accuracy_statement}
+              </div>
+
+              <button
+                onClick={() => {
+                  const midLat = (lidarResult.bounds.min_lat + lidarResult.bounds.max_lat) / 2.0;
+                  const midLon = (lidarResult.bounds.min_lon + lidarResult.bounds.max_lon) / 2.0;
+                  if (onReconstruct) {
+                    onReconstruct({
+                      bounds: lidarResult.bounds,
+                      latitude: midLat,
+                      longitude: midLon,
+                      provider: 'lidar',
+                      data_mode: 'real',
+                    });
+                  }
+                }}
+                disabled={isLoading}
+                className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{isLoading ? 'Reconstructing 3D Terrain...' : 'GENERATE 3D TERRAIN FROM LIDAR DTM'}</span>
+              </button>
             </div>
           )}
         </div>
@@ -565,7 +762,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                   activeTool={activeTool}
                   onToolChange={setActiveTool}
                   selectedPoint={selectedPoint}
-                  onSelectPoint={setSelectedPoint}
+                  onSelectPoint={handleSelectPointWithLandslide}
                   pointAPos={pointAPos}
                   pointAData={pointAData}
                   pointBPos={pointBPos}
@@ -582,6 +779,8 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                   onBuildingClick={(b: BuildingFeature) => { setSelectedBuilding(b); setSelectedRoad(null); setSelectedWater(null); }}
                   onRoadClick={(r: RoadFeature) => { setSelectedRoad(r); setSelectedBuilding(null); setSelectedWater(null); }}
                   onWaterClick={(w: WaterFeature) => { setSelectedWater(w); setSelectedBuilding(null); setSelectedRoad(null); }}
+                  landslideData={landslideData}
+                  onHotspotClick={handleHotspotClick}
                 />
               </div>
 
@@ -628,6 +827,28 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 onToggleColorBySource={() => setColorBySource(!colorBySource)}
                 environmentLoading={envLoading}
                 environmentAvailable={showEnvironmentBreakdown && !!environmentData}
+                landslideData={landslideData}
+                onRunLandslideAnalysis={handleRunLandslideAnalysis}
+                landslideScenario={landslideScenario}
+                onScenarioChange={setLandslideScenario}
+                landslideLoading={landslideLoading}
+              />
+
+              {/* Point Elevation Inspection & Landslide Factor Screening */}
+              <ElevationPanel
+                activeTool={activeTool}
+                selectedPoint={selectedPoint}
+                pointAData={pointAData}
+                pointBData={pointBData}
+                measurement={measurement}
+                onClearMeasurement={() => {
+                  handleSetMeasurement(null, null, null, null, null);
+                  setPointValidation(null);
+                  setLandslideInspection(null);
+                }}
+                pointValidation={pointValidation}
+                landslideInspection={landslideInspection}
+                visualMode={visualMode}
               />
 
               {/* 🏢 On-Demand Environmental Breakdown Control Card */}

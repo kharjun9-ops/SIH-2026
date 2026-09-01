@@ -1,8 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-import shutil
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 import os
 
-from app.models.schemas import ImageAnalysisResponse
+from app.models.schemas import ImageAnalysisResponse, TerrainReconstructResponse
 from app.services.image_service import image_service
 
 router = APIRouter(prefix="/image", tags=["Image Computer Vision"])
@@ -38,3 +37,34 @@ async def analyze_terrain_image(file: UploadFile = File(...)):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+
+@router.post("/reconstruct-3d", response_model=TerrainReconstructResponse)
+async def reconstruct_terrain_from_image(
+    file: UploadFile = File(...),
+    grid_resolution: int = Form(128)
+):
+    """
+    Direct Photogrammetric 3D Terrain Model Generation from a single photograph.
+    Computes metric height field, surface normals, draped photo texture, and topographic analysis.
+    """
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image format '{ext}'. Allowed formats: JPG, JPEG, PNG, WEBP."
+        )
+        
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail="File size exceeds maximum limit of 20MB."
+        )
+        
+    try:
+        result = image_service.reconstruct_terrain_from_image(contents, file.filename, grid_resolution=grid_resolution)
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Image 3D reconstruction failed: {str(e)}")

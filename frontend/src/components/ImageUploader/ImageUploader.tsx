@@ -12,7 +12,7 @@ import {
   X,
   FileText
 } from 'lucide-react';
-import { ImageAnalysisResponse, SampleRegion } from '../../types';
+import { ImageAnalysisResponse, SampleRegion, TerrainReconstructResponse } from '../../types';
 import { api } from '../../services/api';
 
 interface ImageUploaderProps {
@@ -20,6 +20,7 @@ interface ImageUploaderProps {
   samples: SampleRegion[];
   onUseSampleImage: (sampleId: string) => void;
   onApplyImageCoordinates?: (lat: number, lon: number) => void;
+  onReconstructFromImage?: (terrainData: TerrainReconstructResponse) => void;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
@@ -27,11 +28,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   samples,
   onUseSampleImage,
   onApplyImageCoordinates,
+  onReconstructFromImage,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isReconstructing3D, setIsReconstructing3D] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<ImageAnalysisResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'depth' | 'features'>('depth');
@@ -95,6 +98,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       setErrorMsg(e.message || 'Failed to load sample image');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  // Direct 3D Photogrammetric Reconstruction from Image
+  const handleReconstruct3DFromPhoto = async () => {
+    if (!selectedFile) return;
+    setIsReconstructing3D(true);
+    setErrorMsg(null);
+    try {
+      const terrain = await api.reconstructFromImage(selectedFile, 128);
+      if (onReconstructFromImage) {
+        onReconstructFromImage(terrain);
+      }
+    } catch (e: any) {
+      setErrorMsg(e.message || 'Failed to reconstruct 3D model from image');
+    } finally {
+      setIsReconstructing3D(false);
     }
   };
 
@@ -314,16 +334,27 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             </div>
           )}
 
-          {/* If EXIF GPS found, allow instant geocoding navigation */}
-          {analysisResult?.has_exif_gps && analysisResult.exif_lat && analysisResult.exif_lon && onApplyImageCoordinates && (
+          {/* Action Buttons for 3D Reconstruction */}
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-slate-800">
             <button
-              onClick={() => onApplyImageCoordinates(analysisResult.exif_lat!, analysisResult.exif_lon!)}
-              className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
+              onClick={handleReconstruct3DFromPhoto}
+              disabled={isReconstructing3D || isAnalyzing}
+              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Compass className="w-4 h-4" />
-              <span>Apply EXIF Coordinates ({analysisResult.exif_lat.toFixed(4)}°, {analysisResult.exif_lon.toFixed(4)}°) to 3D Terrain</span>
+              <Sparkles className={`w-4 h-4 ${isReconstructing3D ? 'animate-spin' : ''}`} />
+              <span>{isReconstructing3D ? 'Synthesizing 3D Terrain Model...' : '⚡ Reconstruct 3D Model From Photo'}</span>
             </button>
-          )}
+
+            {analysisResult?.has_exif_gps && analysisResult.exif_lat && analysisResult.exif_lon && onApplyImageCoordinates && (
+              <button
+                onClick={() => onApplyImageCoordinates(analysisResult.exif_lat!, analysisResult.exif_lon!)}
+                className="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 text-cyan-300 font-semibold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Compass className="w-4 h-4" />
+                <span>Reconstruct Real DEM ({analysisResult.exif_lat.toFixed(2)}°, {analysisResult.exif_lon.toFixed(2)}°)</span>
+              </button>
+            )}
+          </div>
 
         </div>
       )}

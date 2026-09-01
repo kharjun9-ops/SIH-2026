@@ -135,6 +135,207 @@ def test_environment_service():
     assert len(demo_env["progress"]) > 0
     print("[PASS] Environment layer coordinate transformation and sampling passed")
 
+def test_landslide_curvature_and_weights():
+    from app.services.landslide_service import curvature_service, landslide_service
+    from app.models.schemas import LandslideAnalysisRequest, LandslideParameters
+
+    # 1. Curvature of symmetric bowl: z = a*(x^2 + y^2) (concave, negative curvature)
+    grid = np.zeros((32, 32), dtype=np.float32)
+    for r in range(32):
+        for c in range(32):
+            grid[r, c] = 0.01 * ((r - 16)**2 + (c - 16)**2) * 50.0
+
+    prof_c, plan_c, total_c = curvature_service.calculate_curvatures(grid, cell_size_x_m=20.0, cell_size_y_m=20.0)
+    print(f"[TEST 9] Curvature Calculation: Prof min={np.min(prof_c):.3f}, max={np.max(prof_c):.3f}, Plan min={np.min(plan_c):.3f}, max={np.max(plan_c):.3f}")
+    assert prof_c.shape == (32, 32)
+    assert plan_c.shape == (32, 32)
+    assert total_c.shape == (32, 32)
+
+    # 2. Test dynamic weight renormalization when geology & rainfall are unavailable
+    norm_s = landslide_service.normalize_slope(np.array([[2.0, 10.0, 20.0, 30.0, 45.0]]))
+    print(f"[TEST 9] Normalized slope classes: {norm_s}")
+    assert norm_s[0, 0] < 0.15, "Slope < 5 deg should be Very Low (<0.15)"
+    assert norm_s[0, 4] >= 0.85, "Slope > 35 deg should be Very High (>=0.85)"
+    print("[PASS] Curvature calculation and slope normalization passed")
+
+def test_landslide_screening_pipeline():
+    from app.services.landslide_service import landslide_service
+    from app.models.schemas import LandslideAnalysisRequest, LandslideParameters
+
+    # Test on Bengaluru Pilot coordinates
+    req = LandslideAnalysisRequest(
+        terrain_id="bengaluru_pilot",
+        latitude=12.9716,
+        longitude=77.5946,
+        radius=1500.0,
+        grid_resolution=64,
+        data_mode="real",
+        parameters=LandslideParameters(scenario="normal")
+    )
+
+    resp = landslide_service.calculate_landslide_susceptibility(req)
+    print(f"[TEST 10] Landslide Analysis Output: Status={resp.status}, RiskGrid Shape={len(resp.risk_grid)}x{len(resp.risk_grid[0])}")
+    print(f"         Stats: Very Low={resp.statistics.very_low_pct}%, Low={resp.statistics.low_pct}%, Mod={resp.statistics.moderate_pct}%, High={resp.statistics.high_pct}%, Very High={resp.statistics.very_high_pct}%")
+    print(f"         Active Weights: {resp.model_info.weights_used}")
+    print(f"         Hotspots Found: {len(resp.hotspots)}")
+    print(f"         Buildings Screened: {resp.building_exposure.total_buildings_screened} (High/Very High: {resp.building_exposure.high_count + resp.building_exposure.very_high_count})")
+    print(f"         Road Length Screened: {resp.road_exposure.total_road_length_km} km")
+
+    assert resp.status == "success"
+    assert len(resp.risk_grid) == 64
+    assert abs(sum(resp.model_info.weights_used.values()) - 1.0) < 0.01, "Active weights must sum to 1.0"
+    assert resp.model_info.screening_status == "Screening Model"
+    assert "Not independently validated" in resp.model_info.validation_status
+
+    # Test point inspection in landslide mode
+    insp = landslide_service.inspect_point(12.9716, 77.5946)
+    print(f"[TEST 10] Point Inspection: Score={insp.susceptibility_score}, Risk={insp.risk_class}, Contributors Count={len(insp.main_contributors)}")
+    assert 0.0 <= insp.susceptibility_score <= 1.0
+    assert insp.risk_class in ["VERY LOW", "LOW", "MODERATE", "HIGH", "VERY HIGH"]
+    assert len(insp.main_contributors) >= 4
+    print("[PASS] Full Landslide Susceptibility Screening Pipeline passed")
+
+def test_historical_landslide_inventory():
+    """Test 11: Real Historical Landslide Inventory provider and spatial filtering."""
+    from app.providers.landslide_inventory_provider import landslide_inventory_provider
+
+    all_records = landslide_inventory_provider.get_all_records()
+    print(f"[TEST 11] Total Real Historical Records: {len(all_records)}")
+    assert len(all_records) >= 12, "Must contain authentic historical inventory records"
+
+    # Query Kodagu / Western Ghats
+    bounds_kodagu = {"min_lat": 12.3, "max_lat": 12.6, "min_lon": 75.6, "max_lon": 75.9}
+    events, meta = landslide_inventory_provider.get_inventory_in_bounds(bounds_kodagu, buffer_km=30.0)
+    print(f"[TEST 11] Kodagu Query (30km buffer): Found {len(events)} events, Sources: {meta['sources_summary']}")
+    assert len(events) >= 2, "Should locate Kodagu historical events"
+    assert events[0].citation is not None
+    assert events[0].trigger is not None
+    print("[PASS] Real Historical Landslide Inventory provider passed")
+
+def test_advanced_terrain_derivatives():
+    """Test 12: TPI, TRI, Roughness, D8 Drainage distance, and Road distance."""
+    from app.services.terrain_derivatives_service import terrain_derivatives_service
+
+    test_dem = np.array([
+        [100.0, 120.0, 150.0, 180.0],
+        [110.0, 140.0, 190.0, 220.0],
+        [105.0, 160.0, 230.0, 260.0],
+        [95.0,  150.0, 210.0, 280.0]
+    ], dtype=np.float32)
+
+    tpi = terrain_derivatives_service.calculate_tpi(test_dem, window_size=3)
+    tri = terrain_derivatives_service.calculate_tri(test_dem)
+    rough = terrain_derivatives_service.calculate_roughness(test_dem, window_size=3)
+    dist_drain, stream_mask = terrain_derivatives_service.calculate_drainage_proximity(test_dem, 30.0, 30.0)
+
+    print(f"[TEST 12] TPI shape={tpi.shape}, TRI min={np.min(tri):.2f}, max={np.max(tri):.2f}")
+    print(f"[TEST 12] Roughness max={np.max(rough):.2f}, Drainage Distance min={np.min(dist_drain):.1f}m")
+
+    assert tpi.shape == (4, 4)
+    assert tri.shape == (4, 4)
+    assert np.all(tri >= 0.0)
+    assert dist_drain.shape == (4, 4)
+    print("[PASS] Advanced Terrain Derivatives (TPI, TRI, Roughness, Drainage) passed")
+
+def test_ml_spatial_cross_validation_and_training():
+    """Test 13 & 14: ML dataset construction, spatial block CV, calibration, and benchmarking."""
+    from app.services.landslide_ml_service import landslide_ml_service
+
+    # Build dataset
+    X, y, coords, pos_meta = landslide_ml_service.build_training_dataset(region_name="Western Ghats / Karnataka")
+    print(f"[TEST 13] ML Training Dataset: X shape={X.shape}, Positives={np.sum(y==1)}, Negatives={np.sum(y==0)}")
+    assert X.shape[1] == 12, "Must contain 12 terrain/environmental features"
+    assert len(y) == len(coords)
+
+    # Train and compare candidate models
+    bench = landslide_ml_service.train_and_compare_models()
+    print(f"[TEST 14] Evaluated {len(bench.models_evaluated)} models on 5-Fold Spatial CV:")
+    for m in bench.models_evaluated:
+        print(f"         - {m.model_name}: ROC-AUC={m.roc_auc:.3f}, PR-AUC={m.pr_auc:.3f}, F1={m.f1_score:.3f}, Brier={m.brier_score:.3f}")
+
+    assert len(bench.models_evaluated) >= 4, "Must evaluate Baseline MCE, Logistic Regression, Random Forest, Gradient Boosting"
+    best_m = [m for m in bench.models_evaluated if m.is_active][0]
+    assert best_m.roc_auc >= 0.70, "ML model must achieve high discrimination on spatial holdout"
+    print(f"[TEST 14] Best Model Selected: {bench.selected_model}, Feature Importances: {bench.feature_importances}")
+    print("[PASS] ML Spatial Cross-Validation and Multi-Model Benchmarking passed")
+
+def test_hybrid_landslide_inference_and_capture():
+    """Test 15: Full Landslide ML inference and real historical event capture evaluation."""
+    from app.services.landslide_service import landslide_service
+    from app.models.schemas import LandslideAnalysisRequest
+
+    # Test ML Inference Mode on Kodagu Region (with real historical landslides)
+    req_ml = LandslideAnalysisRequest(
+        latitude=12.4244,
+        longitude=75.7382,
+        radius=3000.0,
+        grid_resolution=64,
+        data_mode="real",
+        model_type="random_forest"
+    )
+
+    resp = landslide_service.calculate_landslide_susceptibility(req_ml)
+    print(f"[TEST 15] ML Pipeline Result: ModelType={resp.model_type}, RiskGrid={len(resp.risk_grid)}x{len(resp.risk_grid[0])}")
+    print(f"         Historical Events Found: {len(resp.historical_events) if resp.historical_events else 0}")
+    if resp.historical_capture:
+        print(f"         Historical Capture: {resp.historical_capture.captured_count}/{resp.historical_capture.total_in_bounds} ({resp.historical_capture.capture_rate_pct}%)")
+        print(f"         Notice: {resp.historical_capture.evaluation_notice}")
+
+    assert resp.status == "success"
+    assert resp.ml_metrics is not None
+    assert resp.ml_metrics.roc_auc >= 0.70
+    assert resp.model_comparison is not None and len(resp.model_comparison) >= 4
+    print("[PASS] Hybrid Landslide ML Inference and Real Capture Evaluation passed")
+
+def test_lidar_response_schema_and_bengaluru_survey():
+    """Test 16: Validate LiDAR processing with bengaluru_pilot_survey.las and verify LiDARProcessResponse schema."""
+    import os
+    from app.services.lidar_service import lidar_service
+    from app.models.schemas import LiDARProcessResponse, LatLonBounds
+
+    las_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "data", "lidar", "bengaluru_pilot_survey.las")
+    if not os.path.exists(las_path):
+        # Fallback path if running directly in backend
+        las_path = os.path.join("..", "data", "lidar", "bengaluru_pilot_survey.las")
+
+    assert os.path.exists(las_path), f"Test file bengaluru_pilot_survey.las must exist at {las_path}"
+
+    with open(las_path, "rb") as f:
+        file_bytes = f.read()
+
+    res = lidar_service.process_uploaded_las(file_bytes, "bengaluru_pilot_survey.las", mode="dtm", resolution=64)
+    print(f"[TEST 16] LiDAR Process Result: Status={res['status']}, Points={res['point_count']:,}")
+    print(f"         Density={res['point_density_sq_m']:.4f} pts/m², Spacing={res['point_spacing_m']:.2f}m")
+    print(f"         Has Ground Classification: {res['has_ground_classification']}")
+    print(f"         Accuracy Statement: {res['accuracy_statement']}")
+
+    # Build Pydantic model
+    bounds_obj = LatLonBounds(**res["bounds"])
+    resp_obj = LiDARProcessResponse(
+        status=res["status"],
+        file_name=res["file_name"],
+        saved_file=res["saved_file"],
+        point_count=res["point_count"],
+        point_density_sq_m=res["point_density_sq_m"],
+        point_spacing_m=res["point_spacing_m"],
+        has_ground_classification=res["has_ground_classification"],
+        accuracy_statement=res["accuracy_statement"],
+        bounds=bounds_obj,
+        elevation_stats=res["elevation_stats"],
+        elevation_grid=res["elevation_grid"],
+        metadata=res["metadata"],
+        point_cloud_sample=res["point_cloud_sample"]
+    )
+
+    assert resp_obj.status == "success"
+    assert resp_obj.point_count == 510184
+    assert resp_obj.point_density_sq_m > 0.0
+    assert resp_obj.point_spacing_m > 0.0
+    assert resp_obj.has_ground_classification is True
+    assert "Source accuracy specification unavailable" in resp_obj.accuracy_statement
+    assert len(resp_obj.elevation_grid) == 64
+    print("[PASS] LiDAR Response Schema Validation with bengaluru_pilot_survey.las passed")
+
 if __name__ == "__main__":
     print("========================================")
     print("RUNNING GEOSPATIAL & GIS TEST SUITE")
@@ -147,7 +348,17 @@ if __name__ == "__main__":
     test_real_vs_demo_mode()
     test_elevation_profile_metrics()
     test_environment_service()
+    test_landslide_curvature_and_weights()
+    test_landslide_screening_pipeline()
+    test_historical_landslide_inventory()
+    test_advanced_terrain_derivatives()
+    test_ml_spatial_cross_validation_and_training()
+    test_hybrid_landslide_inference_and_capture()
+    test_lidar_response_schema_and_bengaluru_survey()
     print("========================================")
-    print("ALL 8 GEOSPATIAL TEST MODULES PASSED! [OK]")
+    print("ALL 16 GEOSPATIAL TEST MODULES PASSED! [OK]")
     print("========================================")
+
+
+
 

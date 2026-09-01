@@ -119,6 +119,7 @@ export interface TerrainStats {
 
 export interface TerrainReconstructResponse {
   status: string;
+  terrain_id?: string;
   region_name?: string;
   provider_used: string;
   fallback_notice?: string;
@@ -177,10 +178,10 @@ export interface LiDARProcessResponse {
   file_name: string;
   saved_file: string;
   point_count: number;
-  point_density_sq_m?: number;
-  point_spacing_m?: number;
-  has_ground_classification?: boolean;
-  accuracy_statement?: string;
+  point_density_sq_m: number;
+  point_spacing_m: number;
+  has_ground_classification: boolean;
+  accuracy_statement: string;
   bounds: LatLonBounds;
   elevation_stats: Record<string, number>;
   elevation_grid: number[][];
@@ -219,8 +220,8 @@ export interface SampleRegion {
   description: string;
 }
 
-export type VisualMode = 'elevation' | 'hillshade' | 'satellite' | 'hybrid' | 'slope' | 'wireframe' | 'pointcloud';
-export type ColormapMode = 'hypsometric' | 'viridis' | 'magma' | 'thermal' | 'emerald' | 'satellite';
+export type VisualMode = 'elevation' | 'hillshade' | 'satellite' | 'hybrid' | 'slope' | 'wireframe' | 'pointcloud' | 'landslide';
+export type ColormapMode = 'hypsometric' | 'viridis' | 'magma' | 'thermal' | 'emerald' | 'satellite' | 'landslide';
 export type InteractionTool = 'inspect' | 'measure' | 'none';
 export type DataMode = 'real' | 'demo';
 export type AreaPreset = '1x1km' | '2x2km' | '5x5km' | '10x10km' | 'custom';
@@ -369,5 +370,225 @@ export interface LayerVisibility {
   roads: boolean;
   water: boolean;
   landmarks: boolean;
+  landslide?: boolean;
 }
+
+// ─── Landslide Susceptibility Layer Types (SIH26175) ─────────────
+
+export interface LandslideFactorContribution {
+  factor_name: string;
+  raw_value?: string;
+  normalized_score: number;
+  weight_pct: number;
+  contribution_level: 'High contribution' | 'Moderate contribution' | 'Low contribution' | 'Unavailable' | 'Scenario-based';
+  description: string;
+}
+
+export interface LandslideInspection {
+  latitude: number;
+  longitude: number;
+  elevation: number;
+  slope: number;
+  aspect: number;
+  aspect_cardinal: string;
+  profile_curvature: number;
+  plan_curvature: number;
+  land_cover: string;
+  geology_status: string;
+  rainfall_status: string;
+  susceptibility_score: number;
+  risk_class: 'VERY LOW' | 'LOW' | 'MODERATE' | 'HIGH' | 'VERY HIGH';
+  main_contributors: LandslideFactorContribution[];
+  hotspot_id?: string | null;
+  scientific_disclaimer: string;
+}
+
+export interface LandslideHotspot {
+  id: string;
+  name: string;
+  risk_class: string;
+  area_sq_m: number;
+  centroid_lat: number;
+  centroid_lon: number;
+  centroid_x_m: number;
+  centroid_z_m: number;
+  mean_slope_deg: number;
+  max_slope_deg: number;
+  mean_susceptibility: number;
+  peak_susceptibility: number;
+  predominant_aspect: string;
+  polygon_bounds?: number[][];
+}
+
+export interface LandslideBuildingExposure {
+  very_high_count: number;
+  high_count: number;
+  moderate_count: number;
+  low_count: number;
+  very_low_count: number;
+  total_count?: number;
+  total_buildings_screened: number;
+}
+
+export interface LandslideRoadExposure {
+  very_high_km: number;
+  high_km: number;
+  moderate_km: number;
+  low_km: number;
+  very_low_km: number;
+  total_km?: number;
+  total_road_length_km: number;
+}
+
+export interface LandslideModelInfo {
+  model_type: string;
+  screening_status: string;
+  data_inputs: Record<string, string>;
+  validation_status: string;
+  region_name?: string;
+  source_resolution: string;
+  analysis_resolution: string;
+  weights_used: Record<string, number>;
+  scenario_mode: string;
+  scientific_notice: string;
+  scientific_disclaimer?: string;
+}
+
+export interface LandslideClassStatistics {
+  very_low_pct: number;
+  low_pct: number;
+  moderate_pct: number;
+  high_pct: number;
+  very_high_pct: number;
+  very_low_area_sq_km?: number;
+  low_area_sq_km?: number;
+  moderate_area_sq_km?: number;
+  high_area_sq_km?: number;
+  very_high_area_sq_km?: number;
+  mean_score: number;
+  std_score: number;
+  high_risk_area_sq_km: number;
+}
+
+export interface LandslideParameters {
+  weight_slope?: number;
+  weight_curvature?: number;
+  weight_landcover?: number;
+  weight_geology?: number;
+  weight_rainfall?: number;
+  weight_aspect?: number;
+  scenario?: 'normal' | 'heavy' | 'extreme';
+  slope_thresholds?: number[];
+}
+
+export interface HistoricalLandslideEvent {
+  id: string;
+  latitude: number;
+  longitude: number;
+  event_date?: string;
+  trigger: string;
+  source: string;
+  source_id?: string;
+  inventory_type: string;
+  confidence: string;
+  area_sq_m?: number;
+  citation?: string;
+  state_region?: string;
+  predicted_risk_class?: string;
+  predicted_score?: number;
+  is_captured?: boolean;
+}
+
+export interface HistoricalCaptureSummary {
+  total_in_bounds: number;
+  captured_count: number;
+  missed_count: number;
+  capture_rate_pct: number;
+  moderate_count: number;
+  low_or_very_low_count: number;
+  evaluation_notice: string;
+}
+
+export interface LandslideInventoryResponse {
+  status: string;
+  count: number;
+  events: HistoricalLandslideEvent[];
+  bounds?: LatLonBounds;
+  sources_summary: Record<string, number>;
+  provenance_notice: string;
+}
+
+export interface MLModelMetrics {
+  roc_auc: number;
+  pr_auc: number;
+  precision: number;
+  recall: number;
+  f1_score: number;
+  balanced_accuracy: number;
+  brier_score: number;
+  validation_method: string;
+  training_sample_count: number;
+  positive_samples: number;
+  negative_samples: number;
+  is_calibrated: boolean;
+  calibration_method: string;
+}
+
+export interface MLModelComparisonItem {
+  model_id: string;
+  model_name: string;
+  algorithm: string;
+  is_active: boolean;
+  roc_auc: number;
+  pr_auc: number;
+  f1_score: number;
+  precision: number;
+  recall: number;
+  brier_score: number;
+  validation_strategy: string;
+}
+
+export interface MLTrainingRequest {
+  region_name?: string;
+  bounds?: LatLonBounds;
+  algorithms?: string[];
+  spatial_cv_folds?: number;
+  negative_buffer_m?: number;
+  calibrate_probabilities?: boolean;
+}
+
+export interface MLTrainingResponse {
+  status: string;
+  selected_model: string;
+  models_evaluated: MLModelComparisonItem[];
+  feature_importances: Record<string, number>;
+  training_samples: number;
+  spatial_folds: number;
+  provenance: Record<string, any>;
+}
+
+export interface LandslideAnalysisResponse {
+  status: string;
+  terrain_id?: string;
+  model_type?: 'baseline' | 'random_forest' | 'gradient_boosting' | 'logistic_regression' | string;
+  bounds: LatLonBounds;
+  metric_bounds: MetricBounds;
+  grid_resolution: number;
+  risk_grid: number[][];
+  class_grid: string[][];
+  classes: string[];
+  statistics: LandslideClassStatistics;
+  model_info: LandslideModelInfo;
+  hotspots: LandslideHotspot[];
+  building_exposure: LandslideBuildingExposure;
+  road_exposure: LandslideRoadExposure;
+  water_proximity_notes?: string;
+  historical_events?: HistoricalLandslideEvent[];
+  historical_capture?: HistoricalCaptureSummary;
+  ml_metrics?: MLModelMetrics;
+  model_comparison?: MLModelComparisonItem[];
+  feature_importances?: Record<string, number>;
+}
+
+
 

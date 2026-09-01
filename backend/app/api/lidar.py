@@ -25,17 +25,39 @@ async def process_lidar_file(
 
     try:
         res = lidar_service.process_uploaded_las(contents, file.filename, mode=mode, resolution=resolution)
+        
+        point_count = int(res.get("point_count", 0))
+        point_density = float(res.get("point_density_sq_m", 0.0))
+        point_spacing = float(res.get("point_spacing_m", 1.0))
+        has_ground = bool(res.get("has_ground_classification", False))
+        accuracy_stmt = str(res.get("accuracy_statement", "Source accuracy specification unavailable; reported values are derived from the uploaded LiDAR dataset."))
+
+        print("\n=== LiDAR RESPONSE DEBUG ===", flush=True)
+        print(f"status: {res.get('status')}", flush=True)
+        print(f"point_count: {point_count}", flush=True)
+        print(f"point_density_sq_m: {point_density}", flush=True)
+        print(f"point_spacing_m: {point_spacing}", flush=True)
+        print(f"has_ground_classification: {has_ground}", flush=True)
+        print(f"accuracy_statement: {accuracy_stmt}", flush=True)
+        print("============================\n", flush=True)
+
         bounds_obj = LatLonBounds(**res["bounds"])
         return LiDARProcessResponse(
-            status=res["status"],
-            file_name=res["file_name"],
-            saved_file=res["saved_file"],
-            point_count=res["point_count"],
+            status=str(res.get("status", "success")),
+            file_name=str(res.get("file_name", file.filename)),
+            saved_file=str(res.get("saved_file", "")),
+            point_count=point_count,
+            point_density_sq_m=point_density,
+            point_spacing_m=point_spacing,
+            has_ground_classification=has_ground,
+            accuracy_statement=accuracy_stmt,
             bounds=bounds_obj,
-            elevation_stats=res["elevation_stats"],
-            elevation_grid=res["elevation_grid"],
-            metadata=res["metadata"],
-            point_cloud_sample=res["point_cloud_sample"]
+            elevation_stats=res.get("elevation_stats", {}),
+            elevation_grid=res.get("elevation_grid", []),
+            metadata=res.get("metadata", {}),
+            point_cloud_sample=res.get("point_cloud_sample", [])
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"LiDAR processing failed: {str(e)}")

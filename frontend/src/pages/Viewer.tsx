@@ -22,7 +22,10 @@ import {
   TwoPointMeasurementResponse,
   SampleRegion,
   PointValidation,
-  ValidationReport
+  ValidationReport,
+  LandslideAnalysisResponse,
+  LandslideInspection,
+  LandslideHotspot
 } from '../types';
 import { TerrainCanvas } from '../components/TerrainViewer/TerrainCanvas';
 import { TerrainControls } from '../components/TerrainControls/TerrainControls';
@@ -56,6 +59,14 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [sunAzimuth, setSunAzimuth] = useState<number>(315);
   const [sunAltitude, setSunAltitude] = useState<number>(45);
 
+  // Landslide Susceptibility State
+  const [landslideData, setLandslideData] = useState<LandslideAnalysisResponse | null>(null);
+  const [landslideLoading, setLandslideLoading] = useState<boolean>(false);
+  const [landslideScenario, setLandslideScenario] = useState<'normal' | 'heavy' | 'extreme'>('normal');
+  const [landslideModelType, setLandslideModelType] = useState<string>('random_forest');
+  const [showHistoricalLandslides, setShowHistoricalLandslides] = useState<boolean>(true);
+  const [landslideInspection, setLandslideInspection] = useState<LandslideInspection | null>(null);
+
   // Point Inspection & Measurement
   const [selectedPoint, setSelectedPoint] = useState<PointInspection | null>(null);
   const [pointValidation, setPointValidation] = useState<PointValidation | null>(null);
@@ -70,6 +81,83 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Landslide calculation handler
+  const handleRunLandslideAnalysis = async (
+    scenario: 'normal' | 'heavy' | 'extreme' = landslideScenario,
+    modelType: string = landslideModelType
+  ) => {
+    if (!terrainData) return;
+    setLandslideLoading(true);
+    try {
+      const resp = await api.runLandslideAnalysis({
+        bounds: terrainData.bounds,
+        terrain_id: terrainData.terrain_id,
+        grid_resolution: terrainData.grid_resolution,
+        provider: terrainData.provider_used,
+        model_type: modelType,
+        include_historical_inventory: true,
+        parameters: {
+          scenario,
+        }
+      });
+      setLandslideData(resp);
+    } catch (err) {
+      console.error('Failed to run landslide analysis:', err);
+    } finally {
+      setLandslideLoading(false);
+    }
+  };
+
+  // Auto-run landslide analysis when terrain is reconstructed or changed
+  React.useEffect(() => {
+    if (terrainData) {
+      handleRunLandslideAnalysis(landslideScenario, landslideModelType);
+    }
+  }, [terrainData]);
+
+  const handleSelectPointWithLandslide = async (pt: PointInspection | null) => {
+    setSelectedPoint(pt);
+    if (!pt || !terrainData) {
+      setLandslideInspection(null);
+      return;
+    }
+    // Perform factor explainability inspection
+    try {
+      const inspectRes = await api.inspectLandslidePoint({
+        latitude: pt.latitude,
+        longitude: pt.longitude,
+        bounds: terrainData.bounds,
+        scenario: landslideScenario
+      });
+      setLandslideInspection(inspectRes);
+    } catch (err) {
+      console.error('Failed to inspect landslide point:', err);
+    }
+  };
+
+  const handleHotspotClick = (hs: LandslideHotspot) => {
+    handleSelectPointWithLandslide({
+      elevation: 0,
+      slope: hs.mean_slope_deg,
+      aspect: 0,
+      aspect_cardinal: 'N',
+      latitude: hs.centroid_lat,
+      longitude: hs.centroid_lon,
+      grid_x: 0,
+      grid_y: 0,
+      x_metric_m: hs.centroid_x_m,
+      y_metric_m: hs.centroid_z_m,
+      source: terrainData?.provider_used || 'Copernicus DEM GLO-30',
+      source_type: 'DSM',
+      native_resolution: '~30m',
+      vertical_datum: 'EGM96 / EGM2008',
+      sampling_method: 'Hotspot Centroid Inspection',
+      coordinate_system: 'EPSG:4326',
+      measurement_quality: 'Hotspot Screening Cluster',
+      accuracy_statement: `Screening hotspot ${hs.name} (${hs.risk_class} risk)`
+    });
+  };
 
   const handleSetMeasurement = (
     ptA: PointInspection | null,
@@ -195,7 +283,7 @@ export const Viewer: React.FC<ViewerProps> = ({
             activeTool={activeTool}
             onToolChange={setActiveTool}
             selectedPoint={selectedPoint}
-            onSelectPoint={setSelectedPoint}
+            onSelectPoint={handleSelectPointWithLandslide}
             pointAPos={pointAPos}
             pointAData={pointAData}
             pointBPos={pointBPos}
@@ -206,6 +294,9 @@ export const Viewer: React.FC<ViewerProps> = ({
             onSetPointValidation={setPointValidation}
             onOpenAccuracyModal={handleOpenAccuracyReport}
             onOpenProfileModal={() => setIsProfileModalOpen(true)}
+            landslideData={landslideData}
+            onHotspotClick={handleHotspotClick}
+            showHistoricalLandslides={showHistoricalLandslides}
           />
         </div>
 
@@ -230,6 +321,15 @@ export const Viewer: React.FC<ViewerProps> = ({
             onSunAzimuthChange={setSunAzimuth}
             sunAltitude={sunAltitude}
             onSunAltitudeChange={setSunAltitude}
+            landslideData={landslideData}
+            onRunLandslideAnalysis={handleRunLandslideAnalysis}
+            landslideScenario={landslideScenario}
+            onScenarioChange={setLandslideScenario}
+            landslideLoading={landslideLoading}
+            landslideModelType={landslideModelType}
+            onModelTypeChange={setLandslideModelType}
+            showHistoricalLandslides={showHistoricalLandslides}
+            onToggleHistoricalLandslides={() => setShowHistoricalLandslides(!showHistoricalLandslides)}
           />
 
           <ElevationPanel
@@ -241,8 +341,11 @@ export const Viewer: React.FC<ViewerProps> = ({
             onClearMeasurement={() => {
               handleSetMeasurement(null, null, null, null, null);
               setPointValidation(null);
+              setLandslideInspection(null);
             }}
             pointValidation={pointValidation}
+            landslideInspection={landslideInspection}
+            visualMode={visualMode}
           />
         </div>
 
