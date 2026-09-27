@@ -1,5 +1,5 @@
-import React, { useRef, useState, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Grid, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { 
@@ -11,15 +11,16 @@ import {
   MapPin, 
   Ruler, 
   Eye, 
-  Download,
-  Crosshair,
-  Layers,
-  ArrowUp,
-  ShieldCheck,
-  Activity,
-  AlertTriangle,
-  Flame,
-  Info
+  Download, 
+  Crosshair, 
+  Layers, 
+  ArrowUp, 
+  ShieldCheck, 
+  Activity, 
+  AlertTriangle, 
+  Flame, 
+  Info,
+  Navigation
 } from 'lucide-react';
 import { 
   TerrainReconstructResponse, 
@@ -36,6 +37,7 @@ import {
 import { TerrainMesh } from './TerrainMesh';
 import { MeasurementPins } from './MeasurementPins';
 import { EnvironmentManager } from '../Environment/EnvironmentManager';
+import { FlyDroneControls, DroneTelemetry } from './FlyDroneControls';
 import { api } from '../../services/api';
 
 interface TerrainCanvasProps {
@@ -228,6 +230,20 @@ const HotspotMarkers: React.FC<{
   );
 };
 
+// Helper component tracking camera heading in degrees when OrbitControls is active
+const OrbitHeadingTracker: React.FC<{ onHeadingChange: (deg: number) => void }> = ({ onHeadingChange }) => {
+  const { camera } = useThree();
+  useFrame(() => {
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    // Heading in degrees: 0 = North (-Z), 90 = East (+X), 180 = South (+Z), 270 = West (-X)
+    const rad = Math.atan2(-dir.x, -dir.z);
+    const deg = ((rad * 180.0) / Math.PI + 360) % 360;
+    onHeadingChange(Math.round(deg));
+  });
+  return null;
+};
+
 export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   terrainData,
   exaggeration = 1.0,
@@ -266,6 +282,11 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   const [selectedPointPos, setSelectedPointPos] = useState<THREE.Vector3 | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Dual Camera Navigation Modes: Orbit vs Drone Fly
+  const [cameraMode, setCameraMode] = useState<'orbit' | 'fly'>('orbit');
+  const [telemetry, setTelemetry] = useState<DroneTelemetry | null>(null);
+  const [cameraHeading, setCameraHeading] = useState<number>(0);
+
   const metricWidth = terrainData.metric_bounds.width_m;
   const metricHeight = terrainData.metric_bounds.height_m;
   const maxDimension = Math.max(metricWidth, metricHeight);
@@ -275,6 +296,44 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
     maxDimension * 0.55,
     maxDimension * 0.85
   ];
+
+  // Auto-frame terrain whenever a new region loads
+  useEffect(() => {
+    if (controlsRef.current && cameraMode === 'orbit') {
+      const controls = controlsRef.current;
+      controls.object.position.set(0, maxDimension * 0.55, maxDimension * 0.85);
+      const elevCenter = ((terrainData.stats.max_elevation - terrainData.stats.min_elevation) * 0.25) * exaggeration;
+      controls.target.set(0, elevCenter, 0);
+      controls.update();
+    }
+  }, [terrainData.terrain_id, terrainData.region_name]);
+
+  const fitCameraToTerrain = () => {
+    if (cameraMode === 'fly') {
+      setCameraMode('orbit');
+    }
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      controls.object.position.set(0, maxDimension * 0.55, maxDimension * 0.85);
+      const elevCenter = ((terrainData.stats.max_elevation - terrainData.stats.min_elevation) * 0.25) * exaggeration;
+      controls.target.set(0, elevCenter, 0);
+      controls.update();
+    }
+  };
+
+  const resetToNorth = () => {
+    if (cameraMode === 'fly') {
+      setCameraMode('orbit');
+    }
+    if (controlsRef.current) {
+      const controls = controlsRef.current;
+      const pos = controls.object.position;
+      const radius = Math.sqrt(pos.x * pos.x + pos.z * pos.z) || maxDimension * 0.85;
+      controls.object.position.set(0, pos.y, radius);
+      controls.target.set(0, controls.target.y, 0);
+      controls.update();
+    }
+  };
 
   const handlePointClick = async (inspection: PointInspection, worldPos: THREE.Vector3) => {
     if (activeTool === 'inspect') {
@@ -308,18 +367,23 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
         onSetMeasurementPoints(inspection, worldPos, null, null, null);
       } else if (pointAData && !pointBData) {
         try {
+          const dMode = terrainData.gis_metadata?.data_status === 'SYNTHETIC DEMO DATA' ? 'demo' : 'real';
           const measRes = await api.measurePoints(
             pointAData.latitude, pointAData.longitude,
             inspection.latitude, inspection.longitude,
-            terrainData.bounds
+            terrainData.bounds,
+            dMode
           );
           onSetMeasurementPoints(pointAData, pointAPos, inspection, worldPos, measRes);
         } catch {
           const dH = Number((inspection.elevation - pointAData.elevation).toFixed(2));
-          const midLat = ((pointAData.latitude + inspection.latitude) / 2.0) * (Math.PI / 180);
-          const dx = (inspection.longitude - pointAData.longitude) * 111320.0 * Math.cos(midLat);
-          const dz = (inspection.latitude - pointAData.latitude) * 111320.0;
-          const hDist = Number(Math.max(0.1, Math.sqrt(dx**2 + dz**2)).toFixed(2));
+          const lat1 = (pointAData.latitude * Math.PI) / 180;
+          const lat2 = (inspection.latitude * Math.PI) / 180;
+          const dLat = ((inspection.latitude - pointAData.latitude) * Math.PI) / 180;
+          const dLon = ((inspection.longitude - pointAData.longitude) * Math.PI) / 180;
+          const ha = Math.sin(dLat / 2.0) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2.0) ** 2;
+          const hc = 2.0 * Math.atan2(Math.sqrt(ha), Math.sqrt(1.0 - ha));
+          const hDist = Number(Math.max(0.1, 6371000.0 * hc).toFixed(2));
           const d3D = Number(Math.sqrt(hDist**2 + dH**2).toFixed(2));
           const slopeDeg = Number((Math.atan2(Math.abs(dH), hDist) * (180.0 / Math.PI)).toFixed(2));
           const gradePct = Number(((Math.abs(dH) / hDist) * 100.0).toFixed(2));
@@ -341,11 +405,12 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             total_ascent_m: dH > 0 ? dH : 0,
             total_descent_m: dH < 0 ? Math.abs(dH) : 0,
             min_elevation_m: Math.min(pointAData.elevation, inspection.elevation),
+            max_elevation_m: Math.max(pointAData.elevation, inspection.elevation),
             comparison_text: `Point B is ${Math.abs(dH).toFixed(2)}m ${dH >= 0 ? 'Higher' : 'Lower'} than Point A (${gradePct}% grade)`,
             source: terrainData.provider_used || 'Copernicus DEM GLO-30',
-            source_resolution: '~30m',
+            source_resolution: terrainData.gis_metadata?.native_resolution || '~30m',
             vertical_datum_compatible: true,
-            vertical_datum: 'EGM96 / EGM2008 Geoid (MSL)',
+            vertical_datum: terrainData.gis_metadata?.vertical_datum || 'Orthometric Height above MSL',
             elevation_profile: []
           });
         }
@@ -354,6 +419,7 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
   };
 
   const setCameraView = (type: 'iso' | 'top' | 'side' | 'reset') => {
+    if (cameraMode === 'fly') setCameraMode('orbit');
     if (!controlsRef.current) return;
     const controls = controlsRef.current;
     if (type === 'iso') {
@@ -401,6 +467,7 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
       
       {/* Top Floating Control Bar */}
       <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 pointer-events-auto">
+        {/* Interaction Tool Selector */}
         <div className="flex items-center bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl">
           <button
             onClick={() => onToolChange('inspect')}
@@ -427,6 +494,32 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
           </button>
         </div>
 
+        {/* Camera Navigation Mode Switcher: Orbit vs Drone Fly */}
+        <div className="flex items-center bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl text-xs">
+          <button
+            onClick={() => setCameraMode('orbit')}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors ${
+              cameraMode === 'orbit'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>Orbit Mode</span>
+          </button>
+          <button
+            onClick={() => setCameraMode('fly')}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors ${
+              cameraMode === 'fly'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span>Drone Fly</span>
+          </button>
+        </div>
+
         {/* Action Buttons: Accuracy Validation Modal & Terrain Profile */}
         <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl text-xs">
           {onOpenAccuracyModal && (
@@ -450,50 +543,70 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
           )}
         </div>
 
-        <div className="hidden sm:flex items-center bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl text-xs">
-          <button
-            onClick={() => setCameraView('iso')}
-            className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
-          >
-            Perspective
-          </button>
-          <button
-            onClick={() => setCameraView('top')}
-            className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
-          >
-            Top-Down
-          </button>
-          <button
-            onClick={() => setCameraView('side')}
-            className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
-          >
-            Profile
-          </button>
-          <button
-            onClick={() => setCameraView('reset')}
-            className="px-2 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+        {/* Orbit Preset Angles */}
+        {cameraMode === 'orbit' && (
+          <div className="hidden sm:flex items-center bg-slate-950/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 shadow-xl text-xs">
+            <button
+              onClick={() => setCameraView('iso')}
+              className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
+            >
+              Perspective
+            </button>
+            <button
+              onClick={() => setCameraView('top')}
+              className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
+            >
+              Top-Down
+            </button>
+            <button
+              onClick={() => setCameraView('side')}
+              className="px-2.5 py-1.5 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/60 rounded-lg transition-colors"
+            >
+              Profile
+            </button>
+            <button
+              onClick={() => setCameraView('reset')}
+              className="px-2 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-lg transition-colors"
+              title="Reset camera view"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Top Right: Fit Terrain & 3D Export */}
+      <div className="absolute top-4 right-4 z-20 flex items-start gap-2.5 pointer-events-auto">
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fitCameraToTerrain}
+              className="px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800/90 text-cyan-300 border border-slate-700 rounded-xl text-xs font-medium backdrop-blur-md shadow-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Fit full terrain to screen"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Fit Terrain</span>
+            </button>
+
+            <button
+              onClick={() => handleExport('glb')}
+              disabled={isExporting}
+              className="px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800/90 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-medium backdrop-blur-md shadow-lg flex items-center gap-1.5 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isExporting ? 'Exporting...' : 'Export Metric 3D (.glb)'}</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Top Right: True Metric Status & 3D Export */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2 pointer-events-auto">
-        <div className="hidden md:flex items-center gap-2 bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono">
-          <span className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-slate-300">1:1 Metric ({(metricWidth / 1000).toFixed(1)} × {(metricHeight / 1000).toFixed(1)} km)</span>
+      {/* Non-Geographic Exaggeration Alert Banner */}
+      {exaggeration !== 1.0 && (
+        <div className="absolute top-16 left-4 z-20 pointer-events-none bg-amber-950/90 border border-amber-500/80 rounded-xl px-3 py-1 text-xs text-amber-200 shadow-xl flex items-center gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <span>EXAGGERATED VIEW ({exaggeration.toFixed(1)}×) — Non-Geographic Vertical Scale</span>
         </div>
-
-        <button
-          onClick={() => handleExport('glb')}
-          disabled={isExporting}
-          className="px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800/90 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-medium backdrop-blur-md shadow-lg flex items-center gap-1.5 transition-colors"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>{isExporting ? 'Exporting...' : 'Export Metric 3D (.glb)'}</span>
-        </button>
-      </div>
+      )}
 
       {/* Interactive Tool Banner Guide */}
       <div className="absolute bottom-4 left-4 z-20 pointer-events-none">
@@ -517,6 +630,46 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
         )}
       </div>
 
+      {/* Drone Flight Telemetry HUD (Active in Fly Mode) */}
+      {cameraMode === 'fly' && telemetry && (
+        <div className="absolute bottom-4 right-4 z-20 pointer-events-auto bg-slate-950/90 backdrop-blur-md border border-cyan-500/50 rounded-xl p-3 shadow-2xl font-mono text-xs text-slate-200 space-y-2 min-w-[240px]">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+            <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              DRONE RECON HUD
+            </span>
+            <span className="text-[10px] text-slate-400">{telemetry.speed} m/s</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+            <div>
+              <span className="text-slate-500 block text-[9px]">ALT AGL</span>
+              <span className="text-white font-bold">{telemetry.altitudeAGL} m</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[9px]">ALT MSL</span>
+              <span className="text-cyan-300 font-bold">{telemetry.altitudeMSL} m</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[9px]">HEADING</span>
+              <span className="text-amber-300 font-bold">{telemetry.headingDeg}°</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[9px]">PITCH</span>
+              <span className="text-slate-300 font-bold">{telemetry.pitchDeg}°</span>
+            </div>
+          </div>
+
+          <div className="pt-1 border-t border-slate-800/80 text-[9px] text-slate-400 flex flex-wrap gap-x-2">
+            <span>[W/A/S/D] Move</span>
+            <span>[Q/E] Alt</span>
+            <span>[Shift] Boost</span>
+            <span>[Drag] Look</span>
+            <span>[Scroll] Speed</span>
+          </div>
+        </div>
+      )}
+
       {/* Main Three.js R3F Canvas Viewport */}
       <div className="w-full h-full flex-1">
         <Canvas
@@ -524,15 +677,21 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
           camera={{ 
             position: cameraInitialPos, 
             fov: 42, 
-            near: 10, 
+            near: 5, 
             far: maxDimension * 10 
           }}
-          gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
+          gl={{ 
+            antialias: true, 
+            alpha: false, 
+            preserveDrawingBuffer: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.15
+          }}
         >
           <ambientLight intensity={0.7} />
           <directionalLight
             position={[maxDimension * 0.8, maxDimension * 1.2, maxDimension * 0.6]}
-            intensity={1.5}
+            intensity={1.6}
             castShadow
             shadow-mapSize-width={2048}
             shadow-mapSize-height={2048}
@@ -549,7 +708,7 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
           />
 
           <color attach="background" args={['#070a10']} />
-          <fog attach="fog" args={['#070a10', maxDimension * 1.2, maxDimension * 3.5]} />
+          <fog attach="fog" args={['#070a10', maxDimension * 1.5, maxDimension * 4.5]} />
           <Stars radius={maxDimension * 2} depth={maxDimension} count={3000} factor={4} saturation={0} fade speed={1} />
 
           {/* Metric Spatial Grid */}
@@ -612,10 +771,10 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             />
           )}
 
-          {/* 3D North Arrow Indicator */}
+          {/* 3D North Arrow Indicator on Terrain */}
           <NorthIndicator terrainWidthM={maxDimension} />
 
-          {/* 3D Metric Scale Bar */}
+          {/* 3D Metric Scale Bar on Terrain */}
           <MetricScaleBar terrainWidthM={maxDimension} />
 
           {/* Measurement & Inspection Pins */}
@@ -636,14 +795,33 @@ export const TerrainCanvas: React.FC<TerrainCanvasProps> = ({
             />
           )}
 
-          <OrbitControls 
-            ref={controlsRef}
-            enableDamping
-            dampingFactor={0.06}
-            maxPolarAngle={Math.PI / 2 - 0.02}
-            minDistance={100}
-            maxDistance={maxDimension * 4}
-          />
+          {/* Orbit Navigation Mode */}
+          {cameraMode === 'orbit' && (
+            <>
+              <OrbitControls 
+                ref={controlsRef}
+                enableDamping
+                dampingFactor={0.06}
+                maxPolarAngle={Math.PI / 2 - 0.02}
+                minDistance={50}
+                maxDistance={maxDimension * 4}
+              />
+              <OrbitHeadingTracker onHeadingChange={setCameraHeading} />
+            </>
+          )}
+
+          {/* Drone / Fly Navigation Mode */}
+          {cameraMode === 'fly' && (
+            <FlyDroneControls
+              terrainData={terrainData}
+              exaggeration={exaggeration}
+              enabled={cameraMode === 'fly'}
+              onTelemetry={(t) => {
+                setTelemetry(t);
+                setCameraHeading(t.headingDeg);
+              }}
+            />
+          )}
         </Canvas>
       </div>
 

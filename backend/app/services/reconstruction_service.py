@@ -13,7 +13,7 @@ from app.services.terrain_service import terrain_service
 from app.services.hillshade_service import hillshade_service
 from app.services.contour_service import contour_service
 from app.services.slope_aspect_service import slope_aspect_service
-from app.utils.geo_utils import bounds_from_center_radius
+from app.utils.geo_utils import bounds_from_center_radius, utm_crs_for_latlon, wgs84_dimensions
 
 class ReconstructionService:
     """Manages 3D terrain reconstruction jobs using modular DEM/LiDAR providers and GIS processing."""
@@ -26,7 +26,7 @@ class ReconstructionService:
         Executes full authoritative terrain reconstruction pipeline:
         1. Resolve geographic bounds
         2. Query elevation manager (LiDAR -> Local GeoTIFF -> Copernicus -> SRTM)
-        3. Convert bounds to local metric coordinate system (meters)
+        3. Convert bounds to local metric coordinate system (meters) via WGS84 geodesy
         4. Compute Horn's slope, aspect, and slope distribution
         5. Generate hillshade relief texture
         6. Calculate contour intervals
@@ -49,6 +49,12 @@ class ReconstructionService:
         else:
             bounds_dict = bounds_from_center_radius(35.3606, 138.7274, 6000.0)
 
+        # Validate bounding box coordinates
+        if bounds_dict["min_lat"] >= bounds_dict["max_lat"]:
+            raise ValueError(f"Invalid bounds: min_lat ({bounds_dict['min_lat']}) >= max_lat ({bounds_dict['max_lat']})")
+        if bounds_dict["min_lon"] >= bounds_dict["max_lon"]:
+            raise ValueError(f"Invalid bounds: min_lon ({bounds_dict['min_lon']}) >= max_lon ({bounds_dict['max_lon']})")
+
         resolution = request.grid_resolution or 128
         provider_pref = request.provider or "auto"
         data_mode = request.data_mode or "real"
@@ -62,11 +68,19 @@ class ReconstructionService:
             data_mode=data_mode
         )
 
-        # 2. Local Metric Bounds (meters East/West and North/South)
+        if elevation_grid is None or elevation_grid.size == 0:
+            raise ValueError(f"No elevation data could be acquired for region: {bounds_dict}")
+
+        # 2. Local Metric Bounds (meters East/West and North/South via WGS84 geodesy)
         metric_bounds = terrain_service.calculate_metric_bounds(bounds_dict)
         rows, cols = elevation_grid.shape
         cell_x_m = metric_bounds.width_m / max(1, cols - 1)
         cell_y_m = metric_bounds.height_m / max(1, rows - 1)
+
+        # Determine UTM zone CRS for this location
+        mid_lat = (bounds_dict["min_lat"] + bounds_dict["max_lat"]) / 2.0
+        mid_lon = (bounds_dict["min_lon"] + bounds_dict["max_lon"]) / 2.0
+        utm_info = utm_crs_for_latlon(mid_lat, mid_lon)
 
         # 3. Compute Slope, Aspect, and Slope Distribution
         slope_grid, aspect_grid = slope_aspect_service.calculate_slope_and_aspect(elevation_grid, cell_x_m, cell_y_m)
@@ -108,6 +122,8 @@ class ReconstructionService:
         vis_res = f"{max(cell_x_m, cell_y_m):.1f} m"
         mesh_res = f"{resolution}x{resolution} ({vertex_count:,} vertices)"
 
+        projected_crs_str = dem_meta.get("projected_crs") or f"{utm_info['epsg']} ({utm_info['name']})"
+
         gis_meta = GISMetadata(
             source=dem_meta.get("source", "Copernicus DEM GLO-30 / SRTM GL1"),
             data_status=dem_meta.get("data_status", "REAL DATA"),
@@ -117,13 +133,13 @@ class ReconstructionService:
             mesh_resolution=mesh_res,
             horizontal_resolution=dem_meta.get("horizontal_resolution", "~30 m"),
             source_crs=dem_meta.get("source_crs", "EPSG:4326 (WGS84)"),
-            projected_crs=dem_meta.get("projected_crs", "Local Transverse Equirectangular Metric Plane"),
+            projected_crs=projected_crs_str,
             vertical_datum=dem_meta.get("vertical_datum", "EGM2008 / EGM96 Geoid (MSL)"),
-            source_vertical_datum=dem_meta.get("source_vertical_datum", "EGM2008 / EGM96 Geoid"),
-            output_vertical_datum=dem_meta.get("output_vertical_datum", "Orthometric Meters above Geoid"),
-            vertical_accuracy=dem_meta.get("vertical_accuracy", "±4m absolute (Copernicus Spec)"),
+            source_vertical_datum=dem_meta.get("source_vertical_datum", "EGM96 Geoid / MSL"),
+            output_vertical_datum=dem_meta.get("output_vertical_datum", "Orthometric Meters above Mean Sea Level"),
+            vertical_accuracy=dem_meta.get("vertical_accuracy", "Nominal Remote Sensing Specification"),
             elevation_type=dem_meta.get("elevation_type", "DSM (Surface)"),
-            projection="Local Transverse Mercator (WGS84 Equirectangular Cos-Corrected)",
+            projection=f"Universal Transverse Mercator ({utm_info['name']})",
             grid_spacing_x_m=round(cell_x_m, 2),
             grid_spacing_y_m=round(cell_y_m, 2),
             data_voids_count=dem_meta.get("data_voids", 0),

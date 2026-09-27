@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 class LatLonBounds(BaseModel):
     min_lat: float
@@ -9,6 +9,18 @@ class LatLonBounds(BaseModel):
     center_lat: Optional[float] = None
     center_lon: Optional[float] = None
     radius_meters: Optional[float] = None
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> "LatLonBounds":
+        if not (-90.0 <= self.min_lat <= 90.0 and -90.0 <= self.max_lat <= 90.0):
+            raise ValueError(f"Latitude must be within [-90, 90]. Received: min_lat={self.min_lat}, max_lat={self.max_lat}")
+        if not (-180.0 <= self.min_lon <= 180.0 and -180.0 <= self.max_lon <= 180.0):
+            raise ValueError(f"Longitude must be within [-180, 180]. Received: min_lon={self.min_lon}, max_lon={self.max_lon}")
+        if self.min_lat >= self.max_lat:
+            raise ValueError(f"min_lat ({self.min_lat}) must be strictly less than max_lat ({self.max_lat})")
+        if self.min_lon >= self.max_lon:
+            raise ValueError(f"min_lon ({self.min_lon}) must be strictly less than max_lon ({self.max_lon})")
+        return self
 
 class MetricBounds(BaseModel):
     width_m: float
@@ -525,4 +537,187 @@ class LandslideAnalysisResponse(BaseModel):
     ml_metrics: Optional[MLModelMetrics] = None
     model_comparison: Optional[List[MLModelComparisonItem]] = None
     feature_importances: Optional[Dict[str, float]] = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Monocular Depth Estimation Pipeline Schemas (SIH26175 Core Requirement)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class GeoTIFFMetadata(BaseModel):
+    """Spatial metadata extracted from a georeferenced GeoTIFF file."""
+    has_georeference: bool = False
+    crs: Optional[str] = None                    # e.g. "EPSG:4326"
+    crs_name: Optional[str] = None               # e.g. "WGS 84"
+    affine_transform: Optional[List[float]] = None  # 6-element affine
+    pixel_size_x: Optional[float] = None         # meters or degrees per pixel
+    pixel_size_y: Optional[float] = None
+    pixel_size_unit: Optional[str] = None        # "meters" or "degrees"
+    bounds_west: Optional[float] = None
+    bounds_east: Optional[float] = None
+    bounds_south: Optional[float] = None
+    bounds_north: Optional[float] = None
+    width_pixels: Optional[int] = None
+    height_pixels: Optional[int] = None
+    band_count: Optional[int] = None
+    dtype: Optional[str] = None
+    nodata_value: Optional[float] = None
+    area_description: Optional[str] = None
+
+class DepthCalibrationInfo(BaseModel):
+    """Metadata describing how scale calibration was performed (or why it was not)."""
+    calibration_method: str = "none"              # "none", "reference_dem", "gcp", "lidar", "scene_statistics"
+    is_metric: bool = False                       # True only when absolute scale is reliably established
+    scale_factor: Optional[float] = None          # Multiplier from relative depth to meters
+    offset_meters: Optional[float] = None         # Base elevation offset
+    reference_source: Optional[str] = None        # e.g. "Copernicus GLO-30 DEM", "SRTM 30m"
+    reference_elevation_min: Optional[float] = None
+    reference_elevation_max: Optional[float] = None
+    reference_elevation_mean: Optional[float] = None
+    calibration_rmse: Optional[float] = None      # RMS error of calibration if computed
+    calibration_r_squared: Optional[float] = None
+    confidence_level: str = "low"                 # "low", "medium", "high"
+    calibration_notice: str = "No scale calibration applied. Output is relative depth only."
+
+class DepthPipelineRequest(BaseModel):
+    """Request model for the unified depth estimation pipeline."""
+    grid_resolution: Optional[int] = Field(256, ge=64, le=512, description="Output grid resolution")
+    calibration_mode: Optional[str] = Field("auto", description="Calibration: 'auto', 'none', 'reference_dem'")
+    reference_dem_source: Optional[str] = Field(None, description="Reference DEM: 'srtm', 'copernicus', or path")
+    depth_model: Optional[str] = Field("auto", description="Depth model: 'auto', 'midas', 'opencv'")
+    exaggeration: Optional[float] = Field(1.0, ge=0.1, le=10.0, description="Vertical exaggeration for visualization")
+
+class DepthPipelineResponse(BaseModel):
+    """Full response from the monocular depth estimation pipeline."""
+    status: str
+    job_id: str
+    input_mode: str                              # "non_georeferenced" or "georeferenced"
+    input_filename: str
+    image_width: int
+    image_height: int
+
+    # Depth estimation
+    depth_model_used: str                        # "MiDaS DPT-Large", "MiDaS DPT-Hybrid", "OpenCV Multi-Cue"
+    depth_map_url: str                           # URL to turbo-colorized depth visualization
+    raw_depth_url: Optional[str] = None          # URL to raw grayscale depth
+    depth_min: float                             # Min normalized depth value
+    depth_max: float                             # Max normalized depth value
+    depth_mean: float
+
+    # DSM output
+    dsm_type: str                                # "RELATIVE" or "METRIC"
+    dsm_label: str                               # Human-readable label, e.g. "Relative DSM (rDSM)"
+    elevation_grid: List[List[float]]            # The actual elevation/depth grid
+    elevation_min: float
+    elevation_max: float
+    elevation_mean: float
+    elevation_unit: str                          # "relative (0-1)" or "meters"
+
+    # Terrain derivatives
+    slope_grid: List[List[float]]
+    aspect_grid: List[List[float]]
+    grid_resolution: int
+
+    # Calibration
+    calibration: DepthCalibrationInfo
+
+    # GeoTIFF metadata (Mode 2 only)
+    geotiff_metadata: Optional[GeoTIFFMetadata] = None
+
+    # Geographic bounds (real for Mode 2, synthetic placeholder for Mode 1)
+    bounds: Optional[LatLonBounds] = None
+    metric_bounds: Optional[MetricBounds] = None
+
+    # 3D visualization assets
+    texture_url: str                             # Original RGB draped as texture
+    hillshade_url: Optional[str] = None
+    mesh_vertex_count: int
+    mesh_face_count: int
+
+    # Topographic stats
+    contour_intervals: Optional[List[float]] = None
+
+    # Pipeline metadata
+    processing_time_ms: Optional[int] = None
+    pipeline_steps: List[str]                    # Log of steps performed
+    scientific_notice: str                       # Transparency notice about data provenance
+
+
+# ─── 360° Room Scanner & 3D Spatial Reconstruction Schemas ─────────────────
+
+class RoomWallData(BaseModel):
+    name: str                                    # e.g. "North Wall", "South Wall", "East Wall", "West Wall", "Floor", "Ceiling"
+    width_m: float
+    height_m: float
+    area_sqm: float
+    normal: Optional[List[float]] = None         # Plane normal [nx, ny, nz]
+    openings: Optional[List[Dict[str, Any]]] = None  # e.g. [{"type": "door", "width_m": 0.9, "height_m": 2.1}]
+
+class RoomDimensionData(BaseModel):
+    length_m: float
+    width_m: float
+    height_m: float
+    length_ft: float
+    width_ft: float
+    height_ft: float
+    floor_area_sqm: float
+    floor_area_sqft: float
+    room_volume_cbm: float
+    room_volume_cbft: float
+    perimeter_m: float
+    perimeter_ft: float
+    wall_area_sqm: float
+    wall_area_sqft: float
+    aspect_ratio: float
+    shape_type: str                              # "Rectangular Enclosure", "Square Room", "L-Shaped Enclosure"
+
+class RoomDimensionCallout(BaseModel):
+    dimension: str                               # "length", "width", "height"
+    label: str                                   # "5.18 m (17.0 ft)"
+    start_pos: List[float]                       # [x, y, z]
+    end_pos: List[float]                         # [x, y, z]
+    color: str                                   # "#38bdf8", "#ec4899", "#10b981"
+
+class CameraTrajectoryPoint(BaseModel):
+    frame_index: int
+    position: List[float]                       # [x, y, z] camera center
+    quaternion: List[float]                     # [qx, qy, qz, qw] orientation
+
+class RoomReconstructResponse(BaseModel):
+    status: str                                 # "success" or "failed"
+    job_id: str
+    scan_type: str                              # "walking_sfm", "video_mvs", "preset_demo"
+    room_name: Optional[str] = "Scanned Room"
+    dimensions: RoomDimensionData
+    walls: List[RoomWallData]
+    dimension_callouts: List[RoomDimensionCallout]
+    
+    # Real 3D Mesh & Point Cloud representation
+    points_3d: Optional[List[List[float]]] = None       # Sampled point cloud [[x, y, z, r, g, b], ...]
+    mesh_vertices: Optional[List[List[float]]] = None   # Real surface mesh vertices
+    mesh_indices: Optional[List[int]] = None            # Triangle indices
+    mesh_uvs: Optional[List[List[float]]] = None
+    mesh_obj_url: Optional[str] = None                  # URL to downloadable reconstructed .obj
+    
+    # Real Camera Trajectory (Walking Path)
+    camera_trajectory: Optional[List[CameraTrajectoryPoint]] = None
+    
+    # Real SfM / MVS Quality Indicators
+    registered_cameras_count: int = 0
+    total_frames_count: int = 0
+    registration_ratio: float = 0.0
+    sparse_point_count: int = 0
+    dense_point_count: int = 0
+    reprojection_error_px: float = 0.0
+    loop_closure_detected: bool = False
+    
+    # Metric Scale Calibration Provenance
+    scale_source: str = "relative_uncalibrated"  # "known_reference_distance", "floor_ceiling_datum", "user_reference_height"
+    scale_factor: float = 1.0
+    
+    # Processing Metadata & Failure Reporting
+    processing_time_ms: int = 0
+    pipeline_steps: List[str]
+    spatial_accuracy_statement: str = "Real multi-view SfM reconstruction with metric calibration"
+    failure_reason: Optional[str] = None
+    recovery_instruction: Optional[str] = None
 

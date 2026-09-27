@@ -1,0 +1,219 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e10] [cursor=pointer]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: TERRAIN3D
+          - generic [ref=e13]: SIH26175
+        - paragraph [ref=e14]: GIS Elevation & 3D Reconstruction Pipeline
+      - generic [ref=e15]:
+        - generic [ref=e19]: "Preset:"
+        - combobox "Preset Sample Region" [ref=e20] [cursor=pointer]:
+          - option "Choose Region Preset..."
+          - option "Bengaluru Central Pilot (Vidhana Soudha & MG Road) (India (Karnataka))" [selected]
+          - option "Mount Fuji (Stratovolcano) (Japan)"
+          - option "Grand Canyon (South Rim) (United States)"
+          - option "Mount Everest & Khumbu (Nepal / Tibet)"
+          - option "Nandi Hills (Monolith) (India (Karnataka))"
+          - option "Western Ghats Escarpment (India (Maharashtra))"
+      - navigation [ref=e21]:
+        - button "Overview" [ref=e22] [cursor=pointer]
+        - button "Reconstruct" [ref=e23] [cursor=pointer]
+        - button "360° Room Scan" [ref=e29] [cursor=pointer]
+        - button "3D Studio" [ref=e34] [cursor=pointer]
+        - button "Analysis" [ref=e39] [cursor=pointer]
+        - button "About" [ref=e43] [cursor=pointer]
+  - main [ref=e47]:
+    - generic [ref=e202]:
+      - generic [ref=e203]:
+        - generic [ref=e210]:
+          - heading "360° Room Scanner & 3D Model Studio 1:1 Metric Scale" [level=1] [ref=e211]:
+            - text: 360° Room Scanner & 3D Model Studio
+            - generic [ref=e212]: 1:1 Metric Scale
+          - paragraph [ref=e213]: Open your phone camera, sweep 360° around your room — Automatically calculates Length, Width, Ceiling Height, Floor Area & Volume.
+        - generic [ref=e214]:
+          - generic [ref=e215]:
+            - button "Meters (m)" [ref=e216] [cursor=pointer]
+            - button "Feet (ft)" [ref=e217] [cursor=pointer]
+          - button "Connect Phone" [ref=e218] [cursor=pointer]
+      - generic [ref=e226]:
+        - generic [ref=e227]:
+          - button "360° Phone Room Scanner" [ref=e228] [cursor=pointer]
+          - button "Satellite / Terrain Monocular Depth" [ref=e232] [cursor=pointer]
+        - generic [ref=e236]: "Confidence: 94.5% Accurate"
+      - generic [ref=e240]:
+        - generic [ref=e241]:
+          - generic [ref=e242]:
+            - button "Live Phone Camera" [ref=e243] [cursor=pointer]
+            - button "Upload 360° Video / Photo" [ref=e248] [cursor=pointer]
+            - button "Instant Demo Presets" [ref=e253] [cursor=pointer]
+          - generic [ref=e257]:
+            - generic [ref=e258]: "Quick Test:"
+            - button "🛏️ Bedroom (5.2m)" [ref=e259] [cursor=pointer]
+            - button "🛋️ Living (6.4m)" [ref=e260] [cursor=pointer]
+            - button "💻 Office (3.8m)" [ref=e261] [cursor=pointer]
+        - generic [ref=e495]:
+          - generic [ref=e498]:
+            - heading "Camera Standby" [level=3] [ref=e503]
+            - paragraph [ref=e504]: Click below to access your phone or webcam, then rotate 360° around your room to create the 3D model.
+            - button "Activate Camera" [ref=e505] [cursor=pointer]
+          - generic [ref=e511]:
+            - heading "360° Guided Room Sweep" [level=3] [ref=e512]
+            - generic [ref=e517]:
+              - generic [ref=e518]: Sweep Rotation
+              - generic [ref=e519]: 100% / 360°
+            - generic [ref=e522]:
+              - button "Start 360° Room Sweep" [ref=e523] [cursor=pointer]
+              - generic [ref=e528]:
+                - button "Flip Camera (Back)" [ref=e529] [cursor=pointer]
+                - button "Start" [ref=e536] [cursor=pointer]
+            - generic [ref=e537]:
+              - generic [ref=e538]:
+                - generic [ref=e539]: "1"
+                - generic [ref=e540]: Stand in the center of your room holding phone at chest height.
+              - generic [ref=e541]:
+                - generic [ref=e542]: "2"
+                - generic [ref=e543]:
+                  - text: Tap
+                  - strong [ref=e544]: Start 360° Room Sweep
+                  - text: and rotate slowly clockwise.
+              - generic [ref=e545]:
+                - generic [ref=e546]: "3"
+                - generic [ref=e547]: The pipeline computes height, length, width, floor area & volume!
+        - generic [ref=e315]:
+          - generic [ref=e316]:
+            - generic [ref=e317]:
+              - heading "Calculated Physical Room Dimensions" [level=2] [ref=e318]
+              - generic [ref=e325]:
+                - button "Copy Report" [ref=e326] [cursor=pointer]
+                - button "Export 3D (.OBJ)" [ref=e331] [cursor=pointer]
+            - generic [ref=e336]:
+              - generic [ref=e337]:
+                - generic [ref=e339]: Room Length
+                - generic [ref=e340]: 5.32 m
+                - generic [ref=e341]: 17.45 ft
+              - generic [ref=e342]:
+                - generic [ref=e344]: Room Width
+                - generic [ref=e345]: 3.65 m
+                - generic [ref=e346]: 11.98 ft
+              - generic [ref=e347]:
+                - generic [ref=e349]: Ceiling Height
+                - generic [ref=e350]: 2.7 m
+                - generic [ref=e351]: 8.86 ft
+              - generic [ref=e352]:
+                - generic [ref=e354]: Floor Area
+                - generic [ref=e355]: 19.42 m²
+                - generic [ref=e356]: 209 sq ft
+              - generic [ref=e357]:
+                - generic [ref=e359]: Room Volume
+                - generic [ref=e360]: 52.43 m³
+                - generic [ref=e361]: 1851.5 cu ft
+              - generic [ref=e362]:
+                - generic [ref=e364]: Wall Surface
+                - generic [ref=e365]: 48.44 m²
+                - generic [ref=e366]: "Perimeter: 17.94m"
+          - generic [ref=e367]:
+            - generic [ref=e368]:
+              - heading "Interactive 3D Room Model & Dimensions" [level=3] [ref=e369]
+              - generic [ref=e373]:
+                - generic [ref=e374]: "Enclosure: Rectangular Enclosure"
+                - generic [ref=e375]: •
+                - generic [ref=e376]: "Aspect Ratio: 1.46:1"
+            - generic [ref=e377]:
+              - generic:
+                - generic [ref=e378]:
+                  - button "3D Model" [active] [ref=e379] [cursor=pointer]
+                  - button "Floor Plan 2D" [ref=e384] [cursor=pointer]
+                - generic [ref=e579]:
+                  - button "Dollhouse" [ref=e580] [cursor=pointer]
+                  - button "Interior" [ref=e581] [cursor=pointer]
+                  - button "Wireframe" [ref=e582] [cursor=pointer]
+                  - button "Point Cloud" [ref=e583] [cursor=pointer]
+                - generic [ref=e396]:
+                  - button "Rulers" [ref=e397] [cursor=pointer]
+                  - button "Tape Measure" [ref=e405] [cursor=pointer]
+                  - button "Reset View" [ref=e410] [cursor=pointer]
+              - generic [ref=e584]:
+                - generic: "Width: 3.65 m (12.0 ft)"
+                - generic: "Length: 5.32 m (17.5 ft)"
+                - generic: "Height: 2.70 m (8.9 ft)"
+              - generic [ref=e421]:
+                - generic [ref=e422]: Real-World 1:1 Metric Scale (1 Three.js Unit = 1 Real-World Meter)
+                - generic [ref=e425]:
+                  - generic [ref=e426]: "Click & Drag: Rotate"
+                  - generic [ref=e427]: "Right Click / 2-Finger: Pan"
+                  - generic [ref=e428]: "Scroll: Zoom"
+          - generic [ref=e429]:
+            - generic [ref=e430]:
+              - heading "Fine-Tune Reference Calibration" [level=4] [ref=e431]
+              - paragraph [ref=e433]: If you know your exact ceiling or door height, adjust the slider below to calibrate all room dimensions with millimeter precision.
+              - generic [ref=e434]:
+                - generic [ref=e435]:
+                  - generic [ref=e436]: Reference Height
+                  - generic [ref=e437]: 2.70 m (8.9 ft)
+                - slider [ref=e438] [cursor=pointer]: "2.7"
+                - generic [ref=e439]:
+                  - generic [ref=e440]: 2.00m (Standard)
+                  - generic [ref=e441]: 2.80m (Avg Room)
+                  - generic [ref=e442]: 4.00m (High Ceiling)
+              - generic [ref=e443]:
+                - generic [ref=e444]:
+                  - generic [ref=e445]: "Photogrammetric Depth:"
+                  - generic [ref=e446]: Multi-Sector Monocular
+                - generic [ref=e447]:
+                  - generic [ref=e448]: "Plane Segmentation:"
+                  - generic [ref=e449]: RANSAC Boundary Fit
+                - generic [ref=e450]:
+                  - generic [ref=e451]: "Scale Metric:"
+                  - generic [ref=e452]: 1 Three.js Unit = 1.0 m
+            - generic [ref=e453]:
+              - heading "Structural Plane & Opening Breakdown" [level=4] [ref=e454]
+              - generic [ref=e460]:
+                - generic [ref=e461]:
+                  - generic [ref=e462]:
+                    - generic [ref=e463]: North Wall
+                    - text: 3.65m × 2.7m
+                    - generic [ref=e464]: "Opening: WINDOW (1.4m × 1.2m)"
+                  - generic [ref=e465]:
+                    - generic [ref=e466]: 9.86 m²
+                    - text: Surface Area
+                - generic [ref=e467]:
+                  - generic [ref=e468]:
+                    - generic [ref=e469]: South Wall
+                    - text: 3.65m × 2.7m
+                    - generic [ref=e470]: "Opening: DOOR (0.9m × 2.1m)"
+                  - generic [ref=e471]:
+                    - generic [ref=e472]: 9.86 m²
+                    - text: Surface Area
+                - generic [ref=e473]:
+                  - generic [ref=e474]:
+                    - generic [ref=e475]: East Wall
+                    - text: 5.32m × 2.7m
+                  - generic [ref=e477]:
+                    - generic [ref=e478]: 14.36 m²
+                    - text: Surface Area
+                - generic [ref=e479]:
+                  - generic [ref=e480]:
+                    - generic [ref=e481]: West Wall
+                    - text: 5.32m × 2.7m
+                  - generic [ref=e482]:
+                    - generic [ref=e483]: 14.36 m²
+                    - text: Surface Area
+                - generic [ref=e484]:
+                  - generic [ref=e485]:
+                    - generic [ref=e486]: Floor
+                    - text: 3.65m × 5.32m
+                  - generic [ref=e487]:
+                    - generic [ref=e488]: 19.42 m²
+                    - text: Surface Area
+                - generic [ref=e489]:
+                  - generic [ref=e490]:
+                    - generic [ref=e491]: Ceiling
+                    - text: 3.65m × 5.32m
+                  - generic [ref=e492]:
+                    - generic [ref=e493]: 19.42 m²
+                    - text: Surface Area
+  - contentinfo [ref=e197]:
+    - generic [ref=e198]:
+      - generic [ref=e199]: Smart India Hackathon 2026 — Problem Statement SIH26175
+      - generic [ref=e200]: 3D Terrain Reconstruction & Geospatial Analysis

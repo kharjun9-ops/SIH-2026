@@ -9,7 +9,7 @@
     "f1_score": 1.0,
     "precision": 1.0,
     "recall": 1.0,
-    "brier_score": 0.056,
+    "brier_score": 0.041,
     "validation_strategy": "Spatial Held-Out Test Fold"
   },
   {

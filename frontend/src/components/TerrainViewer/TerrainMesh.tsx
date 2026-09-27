@@ -87,6 +87,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
 
   // Load satellite texture if available
   useEffect(() => {
+    let currentTex: THREE.Texture | null = null;
     const rawUrl = terrainData.texture_url;
     if (rawUrl) {
       const url = resolveAssetUrl(rawUrl) || rawUrl;
@@ -96,6 +97,9 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
         (tex) => {
           tex.wrapS = THREE.ClampToEdgeWrapping;
           tex.wrapT = THREE.ClampToEdgeWrapping;
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.anisotropy = 8;
+          currentTex = tex;
           setSatelliteTexture(tex);
         },
         undefined,
@@ -104,10 +108,14 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     } else {
       setSatelliteTexture(null);
     }
+    return () => {
+      if (currentTex) currentTex.dispose();
+    };
   }, [terrainData.texture_url]);
 
   // Load hillshade texture if available
   useEffect(() => {
+    let currentTex: THREE.Texture | null = null;
     const rawUrl = terrainData.hillshade_url;
     if (rawUrl) {
       const url = resolveAssetUrl(rawUrl) || rawUrl;
@@ -117,6 +125,8 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
         (tex) => {
           tex.wrapS = THREE.ClampToEdgeWrapping;
           tex.wrapT = THREE.ClampToEdgeWrapping;
+          tex.anisotropy = 8;
+          currentTex = tex;
           setHillshadeTexture(tex);
         },
         undefined,
@@ -125,6 +135,9 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     } else {
       setHillshadeTexture(null);
     }
+    return () => {
+      if (currentTex) currentTex.dispose();
+    };
   }, [terrainData.hillshade_url]);
 
   // Construct 1:1 Metric BufferGeometry (X, Y, Z in meters)
@@ -222,6 +235,7 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
     geom.setIndex(indices);
     geom.computeVertexNormals();
 
@@ -236,6 +250,13 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
       heightM: mb.height_m,
     };
   }, [terrainData, exaggeration, colormap, visualMode, showContours, landslideData]);
+
+  // Clean up geometry on unmount / change to avoid WebGL memory leaks
+  useEffect(() => {
+    return () => {
+      if (geometry) geometry.dispose();
+    };
+  }, [geometry]);
 
   // Exact Raycasting Point Click -> Sub-pixel Continuous Bilinear DEM sampling
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -307,10 +328,10 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
       y_metric_m: Number((-pz).toFixed(2)),
       source: sourceName,
       source_type: isLidar ? 'DTM (Bare-Earth Ground Filtered)' : 'DSM (Digital Surface Model)',
-      native_resolution: isLidar ? '0.5m – 1.0m (High-Density LiDAR)' : '~30m (1 Arc-Second Nominal)',
-      vertical_datum: isLidar ? 'NAVD88 / EGM96 Orthometric' : 'EGM96 / EGM2008 Geoid (MSL)',
+      native_resolution: terrainData.gis_metadata?.native_resolution || (isLidar ? '0.5m – 1.0m (High-Density LiDAR)' : '~30m (1 Arc-Second Nominal)'),
+      vertical_datum: terrainData.gis_metadata?.vertical_datum || (isLidar ? 'Orthometric Height above MSL' : 'EGM96 / EGM2008 Geoid (MSL)'),
       sampling_method: 'Continuous Bilinear Interpolation',
-      coordinate_system: 'EPSG:4326 (WGS84) / Local Metric Equirectangular',
+      coordinate_system: terrainData.gis_metadata?.projected_crs ? `EPSG:4326 (WGS84) / ${terrainData.gis_metadata.projected_crs}` : 'EPSG:4326 (WGS84) / Local Metric Equirectangular',
       measurement_quality: 'Source-consistent measurement',
       accuracy_statement: `Measured from authoritative ${sourceName} using continuous bilinear interpolation.`
     };
@@ -318,16 +339,15 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
     onPointClick(inspection, e.point);
   };
 
-  // Determine active texture based on material mode
-  const activeTexture = useMemo(() => {
-    if (visualMode === 'satellite' && satelliteTexture) return satelliteTexture;
-    if (visualMode === 'hillshade' && hillshadeTexture) return hillshadeTexture;
-    if (visualMode === 'hybrid' && satelliteTexture) return satelliteTexture;
-    if (showSatelliteTexture && satelliteTexture && visualMode === 'elevation') return satelliteTexture;
-    return null;
-  }, [visualMode, satelliteTexture, hillshadeTexture, showSatelliteTexture]);
+  // Determine active visual mode states
+  const isHybrid = visualMode === 'hybrid';
+  const isSatellite = visualMode === 'satellite' || (showSatelliteTexture && visualMode === 'elevation');
+  const isHillshadeOnly = visualMode === 'hillshade';
+  const isWireframe = visualMode === 'wireframe' || showWireframe;
 
-  const useVertexColors = !activeTexture || visualMode === 'slope' || visualMode === 'landslide';
+  // Base texture assignment
+  const baseMap = (isHybrid || isSatellite) && satelliteTexture ? satelliteTexture : isHillshadeOnly ? hillshadeTexture : null;
+  const useVertexColors = !baseMap || visualMode === 'slope' || visualMode === 'landslide';
 
   return (
     <group>
@@ -342,13 +362,24 @@ export const TerrainMesh: React.FC<TerrainMeshProps> = ({
         >
           <meshStandardMaterial
             vertexColors={useVertexColors}
-            map={activeTexture || undefined}
-            wireframe={visualMode === 'wireframe' || showWireframe}
-            roughness={visualMode === 'hillshade' ? 0.9 : 0.65}
-            metalness={0.05}
+            map={baseMap || undefined}
+            lightMap={isHybrid && hillshadeTexture ? hillshadeTexture : undefined}
+            lightMapIntensity={isHybrid ? 0.85 : 1.0}
+            bumpMap={isHybrid && hillshadeTexture ? hillshadeTexture : undefined}
+            bumpScale={isHybrid ? 2.5 : 0}
+            wireframe={isWireframe}
+            roughness={isHillshadeOnly ? 0.9 : isHybrid ? 0.8 : 0.72}
+            metalness={0.02}
             flatShading={false}
             side={THREE.DoubleSide}
           />
+        </mesh>
+      )}
+
+      {/* Underlayer solid mesh when in wireframe mode for physical volume */}
+      {isWireframe && visualMode !== 'pointcloud' && (
+        <mesh geometry={geometry}>
+          <meshBasicMaterial color="#070b14" side={THREE.DoubleSide} />
         </mesh>
       )}
 

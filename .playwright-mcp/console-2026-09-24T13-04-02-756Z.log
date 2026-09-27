@@ -1,0 +1,233 @@
+[   12939ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[   71135ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[   71137ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[   71298ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[   71299ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[   72978ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_RESET @ https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/14/7596/11723:0
+[   73459ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:195:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:201
+[  220438ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[  591066ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[  591068ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[  591071ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[  591072ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[  592008ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:195:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:201
+[  774131ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[  774132ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[  774461ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[  774462ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:187
+[  775289ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:5173/node_modules/.vite/deps/chunk-RVDNCFBU.js?v=d78069dd:17667
+[  776132ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:195:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx:201
+[ 1247973ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1247976ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:232
+[ 1248198ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1248199ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:232
+[ 1249392ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:240:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:246
+[ 1356762ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[ 1371329ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1371331ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:232
+[ 1371447ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1371448ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:232
+[ 1372440ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:240:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256289060:246
+[ 1538544ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1538545ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256579776:232
+[ 1574614ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1574663ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256615910:232
+[ 1589836ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 1589837ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256631595:231
+[ 1661903ms] ReferenceError: renderingPath is not defined
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790256704023:1037:117)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+[ 1661919ms] ReferenceError: renderingPath is not defined
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790256704023:1037:117)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15914:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+[ 1661926ms] [ERROR] The above error occurred in the <Reconstruction> component:
+
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790256704023:49:3)
+    at main
+    at div
+    at App (http://localhost:5173/src/App.tsx?t=1790256289060:29:41)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-GTNMFRWB.js?v=d78069dd:17704
+[ 1662161ms] ReferenceError: renderingPath is not defined
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790256704023:1037:117)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at mountIndeterminateComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14926:21)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15914:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19116:15)
+    at recoverFromConcurrentError (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:18736:28)
+    at performSyncWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:18879:28)
+[ 6669450ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:559
+[ 6669458ms] [ERROR] Failed to load resource: net::ERR_NETWORK_IO_SUSPENDED @ http://localhost:5173/:0
+[ 6691147ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[ 7143021ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[ 7160687ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 7160688ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[ 7160771ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[ 7160799ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[ 7161486ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:236:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:242
+[ 8461750ms] DeveloperError
+[ 8461757ms] DeveloperError
+[ 8461760ms] [ERROR] The above error occurred in the <CesiumTerrainViewer> component:
+
+    at CesiumTerrainViewer (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:37:3)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790256764791:45:3)
+    at main
+    at div
+    at App (http://localhost:5173/src/App.tsx?t=1790256764791:29:41)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14031
+[ 8461765ms] DeveloperError
+[ 8466363ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[10713302ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[10713303ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[10713399ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[10713400ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[10714232ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:236:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:242
+[15332232ms] [WARNING] [.WebGL-0x6ad4001bf200] GL_CONTEXT_LOST_KHR: glDebugMessageCallbackKHR: Context has been lost. @ http://localhost:5173/:0
+[15336080ms] [WARNING] WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost @ http://localhost:5173/:0
+[15337696ms] [ERROR] An error occurred while rendering.  Rendering has stopped.
+DeveloperError: Expected width to be greater than 0, actual value was 0
+Error
+    at new DeveloperError (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:7517:11)
+    at Check.typeOf.number.greaterThan (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:7596:11)
+    at new Texture (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:72260:31)
+    at FramebufferManager.update (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:76772:34)
+    at GlobeDepth.update (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:208133:29)
+    at updateAndClearFramebuffers (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:226868:21)
+    at executeCommandsInViewport (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:226683:7)
+    at Scene4.updateAndExecuteCommands (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:226497:5)
+    at render (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:227255:9)
+    at tryAndCatchError (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:227269:5) @ http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:228661
+[15705264ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[15723248ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[15723250ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[15723253ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[15723254ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:228
+[15724316ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:236:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790256764791:242
+[16083730ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[16083732ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271124536:231
+[16083837ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[16083841ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271124536:231
+[16086425ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271124536:239:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271124536:245
+[16114463ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[16114465ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:231
+[16297040ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[16312479ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[16312480ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:231
+[16312591ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[16312592ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:231
+[16313089ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:239:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:245
+[16493436ms] ReferenceError: Building2 is not defined
+    at TerrainControls (http://localhost:5173/src/components/TerrainControls/TerrainControls.tsx?t=1790271535815:1158:34)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+[16493441ms] ReferenceError: Building2 is not defined
+    at TerrainControls (http://localhost:5173/src/components/TerrainControls/TerrainControls.tsx?t=1790271535815:1158:34)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15924:22)
+    at HTMLUnknownElement.callCallback2 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3674:22)
+    at Object.invokeGuardedCallbackDev (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3699:24)
+    at invokeGuardedCallback (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:3733:39)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19765:15)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+[16493445ms] [ERROR] The above error occurred in the <TerrainControls> component:
+
+    at TerrainControls (http://localhost:5173/src/components/TerrainControls/TerrainControls.tsx?t=1790271535815:34:3)
+    at div
+    at div
+    at div
+    at div
+    at Reconstruction (http://localhost:5173/src/pages/Reconstruction.tsx?t=1790271156041:45:3)
+    at main
+    at div
+    at App (http://localhost:5173/src/App.tsx?t=1790271156041:29:41)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14031
+[16493730ms] ReferenceError: Building2 is not defined
+    at TerrainControls (http://localhost:5173/src/components/TerrainControls/TerrainControls.tsx?t=1790271535815:1158:34)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:11548:26)
+    at updateFunctionComponent (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:14582:28)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:15924:22)
+    at beginWork$1 (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19753:22)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19198:20)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19137:13)
+    at renderRootSync (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:19116:15)
+    at recoverFromConcurrentError (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:18736:28)
+    at performSyncWorkOnRoot (http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:18879:28)
+[17955411ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[17968493ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[17968495ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:231
+[17968533ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[17968533ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:231
+[17969589ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:239:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790271156041:245
+[20359241ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[20359362ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275399683:231
+[20381208ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[20381210ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275422336:288
+[20381214ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[20381215ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275422336:288
+[20382138ms] [WARNING] Cesium ion 3D Tiles initialization failed: TypeError: Cannot read properties of undefined (reading 'scene')
+    at Viewer.get (http://localhost:5173/node_modules/.vite/deps/cesium.js?v=d78069dd:252390:33)
+    at loadPhotorealisticTiles (http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275422336:296:11) @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275422336:302
+[20416339ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[20416340ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275457582:291
+[20439466ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://tile.googleapis.com/v1/3dtiles/root.json?key=your_google_maps_api_key_here:0
+[20439467ms] [WARNING] Google Photorealistic 3D Tiles initialization failed, trying Cesium ion: RequestErrorEvent @ http://localhost:5173/src/components/TerrainViewer/CesiumTerrainViewer.tsx?t=1790275480943:292

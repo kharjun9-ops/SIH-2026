@@ -13,7 +13,9 @@
     "@react-three/drei": "^9.102.6",
     "@react-three/fiber": "^8.16.1",
     "@types/google.maps": "^3.66.0",
+    "@zip.js/zip.js": "^2.7.54",
     "canvas-confetti": "^1.9.2",
+    "cesium": "^1.120.0",
     "clsx": "^2.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.359.0",
@@ -35,6 +37,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.2",
-    "vite": "^5.1.6"
+    "vite": "^5.1.6",
+    "vite-plugin-cesium": "^1.2.22"
   }
 }

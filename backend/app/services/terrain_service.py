@@ -11,7 +11,8 @@ from app.models.schemas import (
 )
 from app.utils.geo_utils import (
     haversine_distance, calculate_area_sq_km,
-    compass_bearing_to_cardinal
+    compass_bearing_to_cardinal, wgs84_dimensions,
+    wgs84_meridional_radius, wgs84_prime_vertical_radius
 )
 from app.services.hillshade_service import hillshade_service
 from app.services.contour_service import contour_service
@@ -25,14 +26,12 @@ class TerrainService:
     def calculate_metric_bounds(bounds: Dict[str, float]) -> MetricBounds:
         """
         Convert WGS84 Lat/Lon bounding box into local metric dimensions (meters).
-        Uses equirectangular metric projection with cosine latitude correction.
+        Uses WGS84 ellipsoidal geodesy to calculate true ground dimensions.
         """
         min_lat, max_lat = bounds["min_lat"], bounds["max_lat"]
         min_lon, max_lon = bounds["min_lon"], bounds["max_lon"]
-        mid_lat = (min_lat + max_lat) / 2.0
 
-        height_m = (max_lat - min_lat) * 111320.0
-        width_m = (max_lon - min_lon) * (111320.0 * math.cos(math.radians(mid_lat)))
+        width_m, height_m = wgs84_dimensions(min_lat, max_lat, min_lon, max_lon)
 
         half_w = width_m / 2.0
         half_h = height_m / 2.0
@@ -149,8 +148,11 @@ class TerrainService:
         slope = float(slope_grid[int(round(r_frac)), int(round(c_frac))])
         aspect = float(aspect_grid[int(round(r_frac)), int(round(c_frac))])
 
-        x_m = (lon - (min_lon + max_lon) / 2.0) * (111320.0 * math.cos(math.radians(mid_lat)))
-        y_m = (lat - mid_lat) * 111320.0
+        mid_lat_rad = math.radians(mid_lat)
+        M = wgs84_meridional_radius(mid_lat_rad)
+        N = wgs84_prime_vertical_radius(mid_lat_rad)
+        x_m = math.radians(lon - (min_lon + max_lon) / 2.0) * N * math.cos(mid_lat_rad)
+        y_m = math.radians(lat - mid_lat) * M
 
         elev_diff = None
         if mesh_elevation_m is not None:
@@ -172,7 +174,7 @@ class TerrainService:
             source=source_name,
             source_type="DTM (Bare-Earth)" if "LiDAR" in source_name else "DSM (Digital Surface Model)",
             native_resolution="0.5m – 1.0m" if "LiDAR" in source_name else "~30m",
-            vertical_datum="NAVD88 / EGM96 Orthometric" if "LiDAR" in source_name else "EGM96 / EGM2008 Geoid (MSL)",
+            vertical_datum="Orthometric Height above MSL (EGM96)" if "LiDAR" in source_name else "EGM96 / EGM2008 Geoid (MSL)",
             sampling_method="Continuous Bilinear Interpolation",
             coordinate_system="EPSG:4326 (WGS84) / Local Metric Equirectangular",
             measurement_quality="Source-consistent measurement",
@@ -262,7 +264,7 @@ class TerrainService:
         avg_grad = ((total_ascent + total_descent) / dist_h) * 100.0
 
         native_res = "0.5m – 1.0m" if "LiDAR" in source_name else "~30m"
-        v_datum = "NAVD88 / EGM96" if "LiDAR" in source_name else "EGM96 / EGM2008 Geoid (MSL)"
+        v_datum = "Orthometric Height above MSL (EGM96)" if "LiDAR" in source_name else "EGM96 / EGM2008 Geoid (MSL)"
 
         return TwoPointMeasurementResponse(
             point_a=pt_a,

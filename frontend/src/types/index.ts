@@ -590,5 +590,187 @@ export interface LandslideAnalysisResponse {
   feature_importances?: Record<string, number>;
 }
 
+// ─── Monocular Depth Estimation Pipeline Types (SIH26175 Core) ─────────────
 
+export interface GeoTIFFMetadata {
+  has_georeference: boolean;
+  crs?: string;
+  crs_name?: string;
+  affine_transform?: number[];
+  pixel_size_x?: number;
+  pixel_size_y?: number;
+  pixel_size_unit?: string;
+  bounds_west?: number;
+  bounds_east?: number;
+  bounds_south?: number;
+  bounds_north?: number;
+  width_pixels?: number;
+  height_pixels?: number;
+  band_count?: number;
+  dtype?: string;
+  nodata_value?: number;
+  area_description?: string;
+}
 
+export interface DepthCalibrationInfo {
+  calibration_method: string;
+  is_metric: boolean;
+  scale_factor?: number;
+  offset_meters?: number;
+  reference_source?: string;
+  reference_elevation_min?: number;
+  reference_elevation_max?: number;
+  reference_elevation_mean?: number;
+  calibration_rmse?: number;
+  calibration_r_squared?: number;
+  confidence_level: string;
+  calibration_notice: string;
+}
+
+export interface DepthPipelineResponse {
+  status: string;
+  job_id: string;
+  input_mode: 'non_georeferenced' | 'georeferenced';
+  input_filename: string;
+  image_width: number;
+  image_height: number;
+
+  depth_model_used: string;
+  depth_map_url: string;
+  raw_depth_url?: string;
+  depth_min: number;
+  depth_max: number;
+  depth_mean: number;
+
+  dsm_type: 'RELATIVE' | 'METRIC';
+  dsm_label: string;
+  elevation_grid: number[][];
+  elevation_min: number;
+  elevation_max: number;
+  elevation_mean: number;
+  elevation_unit: string;
+
+  slope_grid: number[][];
+  aspect_grid: number[][];
+  grid_resolution: number;
+
+  calibration: DepthCalibrationInfo;
+  geotiff_metadata?: GeoTIFFMetadata;
+
+  bounds?: LatLonBounds;
+  metric_bounds?: MetricBounds;
+
+  texture_url: string;
+  hillshade_url?: string;
+  mesh_vertex_count: number;
+  mesh_face_count: number;
+
+  contour_intervals?: number[];
+  processing_time_ms?: number;
+  pipeline_steps: string[];
+  scientific_notice: string;
+}
+
+export interface DepthPipelineCapabilities {
+  status: string;
+  supported_inputs: {
+    mode_1_non_georeferenced: string[];
+    mode_2_georeferenced: string[];
+  };
+  depth_models: {
+    midas_available: boolean;
+    midas_model: string;
+    opencv_fallback: string;
+  };
+  calibration_methods: string[];
+  output_formats: Record<string, string>;
+  max_grid_resolution: number;
+  max_file_size_mb: number;
+}
+
+// ─── 360° Room Scanner & 3D Spatial Types ──────────────────────────────────
+
+export interface RoomWallData {
+  name: string;
+  width_m: number;
+  height_m: number;
+  area_sqm: number;
+  normal?: number[];
+  openings?: Array<{
+    type: string;
+    width_m: number;
+    height_m: number;
+    label?: string;
+  }>;
+}
+
+export interface RoomDimensionData {
+  length_m: number;
+  width_m: number;
+  height_m: number;
+  length_ft: number;
+  width_ft: number;
+  height_ft: number;
+  floor_area_sqm: number;
+  floor_area_sqft: number;
+  room_volume_cbm: number;
+  room_volume_cbft: number;
+  perimeter_m: number;
+  perimeter_ft: number;
+  wall_area_sqm: number;
+  wall_area_sqft: number;
+  aspect_ratio: number;
+  shape_type: string;
+}
+
+export interface RoomDimensionCallout {
+  dimension: 'length' | 'width' | 'height';
+  label: string;
+  start_pos: [number, number, number];
+  end_pos: [number, number, number];
+  color: string;
+}
+
+export interface CameraTrajectoryPoint {
+  frame_index: number;
+  position: [number, number, number];
+  quaternion: [number, number, number, number];
+}
+
+export interface RoomReconstructResponse {
+  status: string;
+  job_id: string;
+  scan_type: string;
+  room_name?: string;
+  dimensions: RoomDimensionData;
+  walls: RoomWallData[];
+  dimension_callouts: RoomDimensionCallout[];
+  points_3d?: number[][];
+  mesh_vertices?: number[][];
+  mesh_indices?: number[];
+  mesh_uvs?: number[][];
+  mesh_obj_url?: string;
+  texture_url?: string;
+  
+  // Real Camera Trajectory (Walking Path)
+  camera_trajectory?: CameraTrajectoryPoint[];
+  
+  // Real SfM / MVS Quality Indicators
+  registered_cameras_count?: number;
+  total_frames_count?: number;
+  registration_ratio?: number;
+  sparse_point_count?: number;
+  dense_point_count?: number;
+  reprojection_error_px?: number;
+  loop_closure_detected?: boolean;
+  
+  // Metric Scale Calibration Provenance
+  scale_source?: string;
+  scale_factor?: number;
+  
+  processing_time_ms: number;
+  pipeline_steps: string[];
+  spatial_accuracy_statement?: string;
+  failure_reason?: string;
+  recovery_instruction?: string;
+}

@@ -12,6 +12,7 @@ import numpy as np
 from app.providers.osm_provider import environment_data_provider
 from app.providers.building_provider import local_building_provider, building_deduplicator
 from app.services.lidar_building_service import lidar_building_service
+from app.utils.geo_utils import wgs84_dimensions
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +30,8 @@ def _latlon_to_metric(lat: float, lon: float, bounds: Dict[str, float]) -> Tuple
     max_lat = bounds["max_lat"]
     min_lon = bounds["min_lon"]
     max_lon = bounds["max_lon"]
-    mid_lat = (min_lat + max_lat) / 2.0
 
-    m_per_deg_lat = 111320.0
-    m_per_deg_lon = 111320.0 * math.cos(math.radians(mid_lat))
-
-    width_m = (max_lon - min_lon) * m_per_deg_lon
-    height_m = (max_lat - min_lat) * m_per_deg_lat
+    width_m, height_m = wgs84_dimensions(min_lat, max_lat, min_lon, max_lon)
 
     frac_x = (lon - min_lon) / max(1e-9, max_lon - min_lon)
     frac_z = (max_lat - lat) / max(1e-9, max_lat - min_lat)

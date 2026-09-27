@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  Eye, 
   Mountain, 
-  Layers, 
-  Sliders, 
-  Crosshair, 
-  Ruler, 
-  Download, 
-  Compass,
-  Sparkles,
-  Maximize2,
+  Compass, 
+  Sparkles, 
   ShieldCheck,
-  Activity
+  Eye,
+  Maximize2
 } from 'lucide-react';
 import { 
   TerrainReconstructResponse, 
@@ -82,7 +76,6 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Landslide calculation handler
   const handleRunLandslideAnalysis = async (
     scenario: 'normal' | 'heavy' | 'extreme' = landslideScenario,
     modelType: string = landslideModelType
@@ -97,9 +90,7 @@ export const Viewer: React.FC<ViewerProps> = ({
         provider: terrainData.provider_used,
         model_type: modelType,
         include_historical_inventory: true,
-        parameters: {
-          scenario,
-        }
+        parameters: { scenario }
       });
       setLandslideData(resp);
     } catch (err) {
@@ -109,7 +100,6 @@ export const Viewer: React.FC<ViewerProps> = ({
     }
   };
 
-  // Auto-run landslide analysis when terrain is reconstructed or changed
   React.useEffect(() => {
     if (terrainData) {
       handleRunLandslideAnalysis(landslideScenario, landslideModelType);
@@ -122,7 +112,6 @@ export const Viewer: React.FC<ViewerProps> = ({
       setLandslideInspection(null);
       return;
     }
-    // Perform factor explainability inspection
     try {
       const inspectRes = await api.inspectLandslidePoint({
         latitude: pt.latitude,
@@ -203,7 +192,7 @@ export const Viewer: React.FC<ViewerProps> = ({
         <div className="space-y-2">
           <h2 className="text-3xl font-extrabold text-white">3D Studio Ready</h2>
           <p className="text-sm text-slate-400 max-w-md mx-auto">
-            No terrain reconstructed yet. Select an authoritative DEM sample region or run the reconstruction pipeline.
+            Select a region below to generate and explore its 3D terrain model:
           </p>
         </div>
 
@@ -212,7 +201,7 @@ export const Viewer: React.FC<ViewerProps> = ({
             <button
               key={s.id}
               onClick={() => onSelectSample(s.id)}
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
             >
               <Compass className="w-4 h-4 text-cyan-400" />
               <span>{s.name}</span>
@@ -224,10 +213,10 @@ export const Viewer: React.FC<ViewerProps> = ({
         <div className="pt-4">
           <button
             onClick={onNavigateToReconstruct}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm rounded-xl shadow-xl shadow-cyan-500/25 transition-all inline-flex items-center gap-2"
+            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm rounded-xl shadow-xl shadow-cyan-500/25 transition-all inline-flex items-center gap-2 cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Go to Reconstruction Pipeline</span>
+            <span>Select Custom Location on Map</span>
           </button>
         </div>
       </div>
@@ -236,23 +225,22 @@ export const Viewer: React.FC<ViewerProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
-      
       {/* Studio Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-mono text-emerald-400">IMMERSIVE 3D STUDIO &mdash; 1:1 METRIC SPACE</span>
+            <span className="text-xs font-mono text-emerald-400">3D MODEL &mdash; SELECTED REGION ONLY (1:1 TRUE SCALE)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-0.5">
-            {terrainData.region_name || 'Authoritative DEM 3D Viewport'}
+            {terrainData.region_name || '3D Reconstructed Surface'}
           </h1>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
           <button
             onClick={handleOpenAccuracyReport}
-            className="px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-300 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Accuracy Report</span>
@@ -268,9 +256,8 @@ export const Viewer: React.FC<ViewerProps> = ({
 
       {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Main 3D Canvas Centerpiece (8 columns) */}
-        <div className="lg:col-span-8 h-[660px]">
+        {/* Main 3D Model Centerpiece of ONLY the Selected Place (8 columns) */}
+        <div className="lg:col-span-8 h-[660px] rounded-2xl overflow-hidden border border-slate-800 bg-[#070b14] shadow-2xl">
           <TerrainCanvas
             terrainData={terrainData}
             exaggeration={exaggeration}
@@ -348,7 +335,6 @@ export const Viewer: React.FC<ViewerProps> = ({
             visualMode={visualMode}
           />
         </div>
-
       </div>
 
       {/* Accuracy Modal */}
@@ -366,7 +352,6 @@ export const Viewer: React.FC<ViewerProps> = ({
         onClose={() => setIsProfileModalOpen(false)}
         measurement={measurement}
       />
-
     </div>
   );
 };

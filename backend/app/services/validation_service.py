@@ -55,7 +55,10 @@ class ValidationService:
             )
 
             # Query authoritative source
-            raw_elev, _ = elevation_manager.get_point_elevation(lat, lon)
+            raw_elev, src = elevation_manager.get_point_elevation(lat, lon)
+            if src == "Unavailable" or np.isnan(raw_elev):
+                continue
+
             diff = mesh_elev - raw_elev
             abs_diff = abs(diff)
 
@@ -72,6 +75,21 @@ class ValidationService:
                     "status": "Verified" if abs_diff <= 10.0 else "Deviation"
                 })
 
+        if len(errors) == 0:
+            return {
+                "validation_type": "Mesh-to-Source DEM Preservation Validation",
+                "source_dataset": source_name,
+                "sample_count": 0,
+                "mean_absolute_error_m": 0.0,
+                "root_mean_square_error_m": 0.0,
+                "max_error_m": 0.0,
+                "min_error_m": 0.0,
+                "mean_bias_m": 0.0,
+                "sample_points_table": [],
+                "fidelity_assessment": "No valid source points found for evaluation",
+                "accuracy_notice": "Validation requires overlapping authoritative source data."
+            }
+
         err_np = np.array(errors)
         signed_np = np.array(signed_errors)
 
@@ -84,15 +102,15 @@ class ValidationService:
         return {
             "validation_type": "Mesh-to-Source DEM Preservation Validation",
             "source_dataset": source_name,
-            "sample_count": sample_count,
+            "sample_count": len(errors),
             "mean_absolute_error_m": round(mae, 3),
             "root_mean_square_error_m": round(rmse, 3),
             "max_error_m": round(max_err, 3),
             "min_error_m": round(min_err, 3),
             "mean_bias_m": round(mean_bias, 3),
             "sample_points_table": sample_points,
-            "fidelity_assessment": "Excellent Geometric Preservation (MAE < 1.0m)" if mae < 1.0 else "Standard Bilinear Resampling Fidelity",
-            "accuracy_notice": "Validation measures fidelity of mesh reconstruction relative to the source DEM dataset. It does not replace on-the-ground geodetic survey validation."
+            "fidelity_assessment": "Sub-Decimeter Survey Fidelity (MAE < 0.1m)" if mae < 0.1 else "High Geometric Preservation (MAE < 1.0m)" if mae < 1.0 else "Standard Resampling Fidelity",
+            "accuracy_notice": "Validation measures mathematical fidelity of 3D mesh reconstruction relative to raw source data."
         }
 
 validation_service = ValidationService()

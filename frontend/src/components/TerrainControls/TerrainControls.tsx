@@ -14,9 +14,6 @@ import {
   Mountain,
   Activity,
   Compass,
-  Building2,
-  Route,
-  Droplets,
   AlertTriangle,
   Flame,
   ShieldAlert,
@@ -24,7 +21,7 @@ import {
   Settings2,
   RefreshCw
 } from 'lucide-react';
-import { VisualMode, ColormapMode, LayerVisibility, LandslideAnalysisResponse } from '../../types';
+import { VisualMode, ColormapMode, LandslideAnalysisResponse } from '../../types';
 
 interface TerrainControlsProps {
   exaggeration: number;
@@ -49,12 +46,6 @@ interface TerrainControlsProps {
   onSunAltitudeChange?: (val: number) => void;
   hillshadeIntensity?: number;
   onHillshadeIntensityChange?: (val: number) => void;
-  layerVisibility?: LayerVisibility;
-  onToggleLayer?: (layer: keyof LayerVisibility) => void;
-  colorBySource?: boolean;
-  onToggleColorBySource?: () => void;
-  environmentLoading?: boolean;
-  environmentAvailable?: boolean;
   landslideData?: LandslideAnalysisResponse | null;
   onRunLandslideAnalysis?: (scenario?: 'normal' | 'heavy' | 'extreme', modelType?: string) => void;
   landslideScenario?: 'normal' | 'heavy' | 'extreme';
@@ -89,12 +80,6 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
   onSunAltitudeChange,
   hillshadeIntensity = 1.0,
   onHillshadeIntensityChange,
-  layerVisibility,
-  onToggleLayer,
-  colorBySource = true,
-  onToggleColorBySource,
-  environmentLoading = false,
-  environmentAvailable = false,
   landslideData,
   onRunLandslideAnalysis,
   landslideScenario = 'normal',
@@ -409,8 +394,12 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
             <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
             Vertical Exaggeration:
           </span>
-          <span className="font-mono text-cyan-300 font-bold px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800/40">
-            {exaggeration.toFixed(1)}× {exaggeration === 1.0 && '(True 1:1 Scale)'}
+          <span className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] border ${
+            exaggeration === 1.0 
+              ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800/60' 
+              : 'bg-amber-950/80 text-amber-300 border-amber-800/60'
+          }`}>
+            {exaggeration === 1.0 ? '1.0× (TRUE 1:1 METRIC)' : `${exaggeration.toFixed(1)}× (EXAGGERATED VIEW)`}
           </span>
         </div>
         
@@ -426,10 +415,16 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
 
         <div className="flex justify-between text-[10px] font-mono text-slate-500 px-0.5">
           <span>0.5×</span>
-          <span className="text-emerald-400 font-bold">1.0× (Physical 1:1)</span>
+          <span className="text-emerald-400 font-bold">1.0× (True Physical)</span>
           <span>2.5×</span>
           <span>5.0×</span>
         </div>
+
+        {exaggeration !== 1.0 && (
+          <p className="text-[10px] text-amber-400/90 font-mono bg-amber-950/40 p-1.5 rounded-lg border border-amber-800/40">
+            ⚠️ Non-geographic vertical scale active. Switch back to 1.0× for true-to-life physical topography.
+          </p>
+        )}
       </div>
 
       {/* 3. Hillshade Sun Lighting Controls (when Hillshade or Hybrid active) */}
@@ -598,114 +593,6 @@ export const TerrainControls: React.FC<TerrainControlsProps> = ({
           </button>
         </div>
       </div>
-
-      {/* ─── Environment Layers ─── */}
-      {layerVisibility && onToggleLayer && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-bold text-white uppercase tracking-wide">Environment Layers</span>
-            </div>
-            {environmentLoading && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-700/60 text-amber-300 font-mono animate-pulse">
-                Loading...
-              </span>
-            )}
-            {!environmentLoading && environmentAvailable && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 font-mono">
-                OSM
-              </span>
-            )}
-          </div>
-
-          {/* Buildings Toggle */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-amber-400" />
-              Buildings
-            </span>
-            <button
-              onClick={() => onToggleLayer('buildings')}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                layerVisibility.buildings ? 'bg-amber-500' : 'bg-slate-800'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.buildings ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-
-          {/* Color by Height Source Toggle (when buildings active) */}
-          {layerVisibility.buildings && onToggleColorBySource && (
-            <div className="pl-4 py-1.5 border-l-2 border-cyan-500/40 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-cyan-300 text-[11px] font-medium flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-cyan-400" />
-                  Color by Height Source
-                </span>
-                <button
-                  onClick={onToggleColorBySource}
-                  className={`w-9 h-4.5 rounded-full p-0.5 transition-colors ${
-                    colorBySource ? 'bg-cyan-500' : 'bg-slate-800'
-                  }`}
-                >
-                  <div className={`w-3.5 h-3.5 rounded-full bg-white transition-transform ${colorBySource ? 'translate-x-4.5' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {colorBySource && (
-                <div className="grid grid-cols-3 gap-1 pt-1 text-[9px] font-mono text-slate-400">
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0" />
-                    <span>LiDAR</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                    <span>Mapped</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
-                    <span>Estimated</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Roads Toggle */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 flex items-center gap-1.5">
-              <Route className="w-3.5 h-3.5 text-slate-400" />
-              Roads
-            </span>
-            <button
-              onClick={() => onToggleLayer('roads')}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                layerVisibility.roads ? 'bg-slate-500' : 'bg-slate-800'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.roads ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-
-          {/* Water Toggle */}
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-300 flex items-center gap-1.5">
-              <Droplets className="w-3.5 h-3.5 text-blue-400" />
-              Water Bodies
-            </span>
-            <button
-              onClick={() => onToggleLayer('water')}
-              className={`w-10 h-5 rounded-full p-0.5 transition-colors ${
-                layerVisibility.water ? 'bg-blue-500' : 'bg-slate-800'
-              }`}
-            >
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform ${layerVisibility.water ? 'translate-x-5' : 'translate-x-0'}`} />
-            </button>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

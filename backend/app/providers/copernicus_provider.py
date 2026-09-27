@@ -5,7 +5,8 @@ import requests
 import numpy as np
 from typing import Dict, Any, Tuple, Optional
 from PIL import Image
-from scipy.ndimage import zoom
+from scipy.ndimage import map_coordinates
+from app.utils.geo_utils import wgs84_dimensions, utm_crs_for_latlon
 
 from app.config import settings
 from app.providers.base_provider import ElevationProvider
@@ -131,24 +132,29 @@ class CopernicusDEMProvider(ElevationProvider):
         if valid_tiles == 0:
             return None
 
-        h_canvas, w_canvas = stitched.shape
-        px_left = int(round((x_frac_min - x_min) * 256.0))
-        px_right = int(round((x_frac_max - x_min) * 256.0))
-        py_top = int(round((y_frac_top - y_min) * 256.0))
-        py_bottom = int(round((y_frac_bottom - y_min) * 256.0))
+        # Continuous sub-pixel geographic remapping from Web Mercator stitched canvas
+        # Target grid: Row 0 is North (max_lat), Row -1 is South (min_lat)
+        # Col 0 is West (min_lon), Col -1 is East (max_lon)
+        grid_lons = np.linspace(min_lon, max_lon, resolution)
+        grid_lats = np.linspace(max_lat, min_lat, resolution)
+        grid_lon, grid_lat = np.meshgrid(grid_lons, grid_lats)
 
-        px_left = max(0, min(w_canvas - 2, px_left))
-        px_right = max(px_left + 1, min(w_canvas, px_right))
-        py_top = max(0, min(h_canvas - 2, py_top))
-        py_bottom = max(py_top + 1, min(h_canvas, py_bottom))
+        grid_lat_rad = np.radians(grid_lat)
+        grid_x_frac = (grid_lon + 180.0) / 360.0 * n
+        grid_y_frac = (1.0 - np.arcsinh(np.tan(grid_lat_rad)) / np.pi) / 2.0 * n
 
-        cropped = stitched[py_top:py_bottom, px_left:px_right]
+        px = (grid_x_frac - x_min) * 256.0
+        py = (grid_y_frac - y_min) * 256.0
 
-        if cropped.shape[0] != resolution or cropped.shape[1] != resolution:
-            zoom_factors = (resolution / cropped.shape[0], resolution / cropped.shape[1])
-            resampled = zoom(cropped, zoom_factors, order=1)
-        else:
-            resampled = cropped
+        resampled = map_coordinates(stitched, [py, px], order=1, mode='nearest')
+
+        width_m, height_m = wgs84_dimensions(min_lat, max_lat, min_lon, max_lon)
+        cell_x_m = width_m / max(1, resolution - 1)
+        cell_y_m = height_m / max(1, resolution - 1)
+
+        mid_lat = (min_lat + max_lat) / 2.0
+        mid_lon = (min_lon + max_lon) / 2.0
+        utm_info = utm_crs_for_latlon(mid_lat, mid_lon)
 
         meta = {
             "source": self.get_source_name(),
@@ -157,15 +163,17 @@ class CopernicusDEMProvider(ElevationProvider):
             "native_resolution": "~30 m (1 arc-second nominal)",
             "horizontal_resolution": self.get_resolution(),
             "source_crs": "EPSG:4326 (WGS84) / Web Mercator EPSG:3857",
-            "projected_crs": "Local Transverse Equirectangular Metric Tangent Plane",
+            "projected_crs": f"{utm_info['epsg']} ({utm_info['name']})",
             "vertical_datum": self.get_vertical_datum(),
             "source_vertical_datum": "EGM2008 / EGM96 Geoid",
             "output_vertical_datum": "Orthometric Meters above Mean Sea Level",
             "elevation_type": "DSM (Surface Elevation including canopy/structures)",
             "vertical_accuracy": "±4m absolute vertical accuracy (Copernicus GLO-30 Spec)",
             "zoom_level": z,
+            "grid_spacing_x_m": round(cell_x_m, 2),
+            "grid_spacing_y_m": round(cell_y_m, 2),
             "data_voids": int(np.sum(np.isnan(resampled) | (resampled < -500))),
             "interpolation_method": "Continuous Sub-Pixel Bilinear Resampling",
-            "resolution_transparency_note": "Visualization grid is resampled from the native 30m Copernicus GLO-30 raster."
+            "resolution_transparency_note": f"Mesh resampled at {resolution}x{resolution} (~{cell_x_m:.1f}m spacing) from native 30m Copernicus raster."
         }
         return resampled.astype(np.float32), meta

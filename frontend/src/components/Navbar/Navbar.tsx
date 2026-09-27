@@ -7,7 +7,8 @@ import {
   Info, 
   Compass, 
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Camera
 } from 'lucide-react';
 import { SampleRegion } from '../../types';
 
@@ -97,6 +98,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Layers className="w-4 h-4" />
             <span>Reconstruct</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('depth')}
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
+              currentPage === 'depth'
+                ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/10'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Camera className="w-4 h-4 text-cyan-400" />
+            <span className="hidden sm:inline">360° Room Scan</span>
+            <span className="sm:hidden">Room 3D</span>
           </button>
 
           <button

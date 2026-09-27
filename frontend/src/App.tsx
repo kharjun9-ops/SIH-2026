@@ -5,6 +5,7 @@ import { Reconstruction } from './pages/Reconstruction';
 import { Viewer } from './pages/Viewer';
 import { Analysis } from './pages/Analysis';
 import { About } from './pages/About';
+import { DepthPipeline } from './pages/DepthPipeline';
 import { LoadingOverlay } from './components/Loading/LoadingOverlay';
 import { 
   SampleRegion, 
@@ -98,6 +99,7 @@ export const App: React.FC = () => {
         latitude: matching.center_lat,
         longitude: matching.center_lon,
         radius: matching.radius_meters,
+        bounds: newBounds,
         data_mode: dataMode
       });
     }
@@ -199,6 +201,10 @@ export const App: React.FC = () => {
             onSelectSample={handleSelectSample}
             onNavigateToReconstruct={() => setCurrentPage('reconstruction')}
           />
+        )}
+
+        {currentPage === 'depth' && (
+          <DepthPipeline />
         )}
 
         {currentPage === 'about' && (

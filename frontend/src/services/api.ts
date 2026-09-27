@@ -15,7 +15,10 @@ import {
   HistoricalLandslideEvent,
   LandslideInventoryResponse,
   MLTrainingRequest,
-  MLTrainingResponse
+  MLTrainingResponse,
+  DepthPipelineResponse,
+  DepthPipelineCapabilities,
+  RoomReconstructResponse
 } from '../types';
 
 // Support custom backend URL in production (e.g. VITE_API_BASE_URL=https://sih-2026-eqxk.onrender.com)
@@ -114,6 +117,11 @@ export const api = {
       body: JSON.stringify({ latitude, longitude, mesh_elevation_m }),
     });
     return handleResponse<PointValidation>(res, 'Validate Point');
+  },
+
+  async getAuthoritativeElevation(latitude: number, longitude: number): Promise<{ latitude: number; longitude: number; elevation: number }> {
+    const res = await fetch(`${API_BASE}/elevation?lat=${latitude}&lon=${longitude}`);
+    return handleResponse<{ latitude: number; longitude: number; elevation: number }>(res, 'Query Elevation');
   },
 
   async runAccuracyValidation(params: {
@@ -358,6 +366,88 @@ export const api = {
       throw new Error(`[Export Hotspots GeoJSON] ${errorDetail} (Status ${res.status})`);
     }
     return res.blob();
-  }
-};
+  },
 
+  // ─── Monocular Depth Pipeline (SIH26175 Core) ─────────────────────────────
+
+  async processDepthPipeline(
+    file: File,
+    gridResolution: number = 256,
+    calibrationMode: string = 'auto',
+    depthModel: string = 'auto'
+  ): Promise<DepthPipelineResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('grid_resolution', gridResolution.toString());
+    formData.append('calibration_mode', calibrationMode);
+    formData.append('depth_model', depthModel);
+
+    const res = await fetch(`${API_BASE}/depth/process`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<DepthPipelineResponse>(res, 'Depth Pipeline');
+  },
+
+  async fetchDepthPipelineResult(jobId: string): Promise<DepthPipelineResponse> {
+    const res = await fetch(`${API_BASE}/depth/result/${jobId}`);
+    return handleResponse<DepthPipelineResponse>(res, 'Fetch Depth Result');
+  },
+
+  async fetchDepthCapabilities(): Promise<DepthPipelineCapabilities> {
+    const res = await fetch(`${API_BASE}/depth/capabilities`);
+    return handleResponse<DepthPipelineCapabilities>(res, 'Depth Capabilities');
+  },
+
+  // ─── 360° Room Scanner & 3D Spatial Reconstruction ───────────────────────
+
+  async reconstructRoom(
+    files: File[],
+    roomName: string = 'My Scanned Room',
+    calibrationMode: string = 'auto',
+    referenceHeightM?: number
+  ): Promise<RoomReconstructResponse> {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
+    formData.append('room_name', roomName);
+    formData.append('calibration_mode', calibrationMode);
+    if (referenceHeightM) {
+      formData.append('reference_height_m', referenceHeightM.toString());
+    }
+
+    const res = await fetch(`${API_BASE}/room/reconstruct`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<RoomReconstructResponse>(res, 'Room 3D Reconstruction');
+  },
+
+  async fetchRoomDemo(roomType: string = 'bedroom'): Promise<RoomReconstructResponse> {
+    const res = await fetch(`${API_BASE}/room/demo/${roomType}`);
+    return handleResponse<RoomReconstructResponse>(res, 'Fetch Room Demo');
+  },
+
+  async exportRoomObj(
+    lengthM: number,
+    widthM: number,
+    heightM: number,
+    roomName: string = 'room_model'
+  ): Promise<Blob> {
+    const formData = new FormData();
+    formData.append('length_m', lengthM.toString());
+    formData.append('width_m', widthM.toString());
+    formData.append('height_m', heightM.toString());
+    formData.append('room_name', roomName);
+
+    const res = await fetch(`${API_BASE}/room/export-obj`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(`Export failed with status ${res.status}`);
+    }
+    return res.blob();
+  },
+};

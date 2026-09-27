@@ -13,6 +13,8 @@ from app.api.validation import router as validation_router
 from app.api.lidar import router as lidar_router
 from app.api.environment import router as environment_router
 from app.api.landslide import router as landslide_router
+from app.api.depth_pipeline import router as depth_pipeline_router
+from app.api.room_reconstruction import router as room_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -44,6 +46,8 @@ app.include_router(validation_router, prefix=settings.API_V1_PREFIX)
 app.include_router(lidar_router, prefix=settings.API_V1_PREFIX)
 app.include_router(environment_router, prefix=settings.API_V1_PREFIX)
 app.include_router(landslide_router, prefix=settings.API_V1_PREFIX)
+app.include_router(depth_pipeline_router, prefix=settings.API_V1_PREFIX)
+app.include_router(room_router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 def root():
@@ -61,7 +65,9 @@ def root():
             "image_analyze": "/api/image/analyze",
             "measure": "/api/terrain/measure",
             "export_3d": "/api/terrain/export",
-            "environment_layers": "/api/environment/layers"
+            "environment_layers": "/api/environment/layers",
+            "depth_pipeline": "/api/depth/process",
+            "depth_capabilities": "/api/depth/capabilities"
         }
     }
 

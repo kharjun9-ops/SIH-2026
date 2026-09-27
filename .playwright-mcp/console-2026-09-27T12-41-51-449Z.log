@@ -1,0 +1,3 @@
+[    6186ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/chunk-342R7NCG.js?v=d78069dd:21550
+[   28247ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:5173/node_modules/.vite/deps/chunk-RVDNCFBU.js?v=d78069dd:17667
+[  384845ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:5173/node_modules/.vite/deps/chunk-RVDNCFBU.js?v=d78069dd:17667
