@@ -245,7 +245,7 @@ export const MapPicker: React.FC<MapPickerProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search location (e.g. Bengaluru, MG Road, Vidhana Soudha)..."
+                placeholder="Search location (e.g. Mount Everest, Himalayas, Grand Canyon)..."
                 className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono transition-all"
               />
             </div>

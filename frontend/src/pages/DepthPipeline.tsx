@@ -851,8 +851,7 @@ Scale Datum: ${roomResult.scale_source ?? 'calibrated'}`;
                       const result = await api.reconstructRoom(filesArray, 'Uploaded Room Scan');
                       setRoomResult(result);
                     } catch (err: any) {
-                      setRoomError('Upload processing failed. Using auto-calibrated demo.');
-                      loadRoomPreset('bedroom');
+                      setRoomError(err.message || 'Upload reconstruction failed. Ensure frames have sufficient translational parallax, distinct textures, and low motion blur.');
                     } finally {
                       setIsProcessingRoom(false);
                     }

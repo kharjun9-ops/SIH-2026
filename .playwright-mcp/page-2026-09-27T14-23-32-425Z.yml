@@ -1,0 +1,269 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - generic [ref=f1e5]:
+      - generic [ref=f1e10] [cursor=pointer]:
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: TERRAIN3D
+          - generic [ref=f1e13]: SIH26175
+        - paragraph [ref=f1e14]: GIS Elevation & 3D Reconstruction Pipeline
+      - generic [ref=f1e15]:
+        - generic [ref=f1e19]: "Preset:"
+        - combobox "Preset Sample Region" [ref=f1e20] [cursor=pointer]:
+          - option "Choose Region Preset..." [selected]
+          - option "Bengaluru Central Pilot (Vidhana Soudha & MG Road) (India (Karnataka))"
+          - option "Mount Fuji (Stratovolcano) (Japan)"
+          - option "Grand Canyon (South Rim) (United States)"
+          - option "Mount Everest & Khumbu (Nepal / Tibet)"
+          - option "Nandi Hills (Monolith) (India (Karnataka))"
+          - option "Western Ghats Escarpment (India (Maharashtra))"
+      - navigation [ref=f1e21]:
+        - button "Overview" [ref=f1e22] [cursor=pointer]
+        - button "Reconstruct" [active] [ref=f1e23] [cursor=pointer]
+        - button "360° Room Scan" [ref=f1e29] [cursor=pointer]
+        - button "3D Studio" [ref=f1e34] [cursor=pointer]
+        - button "Analysis" [ref=f1e40] [cursor=pointer]
+        - button "About" [ref=f1e44] [cursor=pointer]
+  - main [ref=f1e48]:
+    - generic [ref=f1e49]:
+      - generic [ref=f1e50]:
+        - heading "Terrain Reconstruction Pipeline" [level=1] [ref=f1e52]
+        - generic [ref=f1e53]: REAL DATA MODE
+      - generic [ref=f1e60]:
+        - button "Method 1 — Map & Search" [ref=f1e61] [cursor=pointer]
+        - button "Method 2 — Coordinates" [ref=f1e66] [cursor=pointer]
+        - button "Method 3 — Single Image" [ref=f1e71] [cursor=pointer]
+        - button "Method 4 — LiDAR LAS/LAZ" [ref=f1e77] [cursor=pointer]
+      - generic [ref=f1e85]:
+        - generic [ref=f1e87]:
+          - generic [ref=f1e88]: "MAP ENGINE: Leaflet / OpenStreetMap"
+          - generic [ref=f1e91]:
+            - textbox "Search location (e.g. Bengaluru, MG Road, Vidhana Soudha)..." [ref=f1e93]
+            - button "Locate" [ref=f1e94] [cursor=pointer]
+          - generic [ref=f1e98]:
+            - button "Satellite" [ref=f1e99] [cursor=pointer]
+            - button "OpenStreetMap" [ref=f1e104] [cursor=pointer]
+            - button "Terrain" [ref=f1e105] [cursor=pointer]
+        - generic [ref=f1e107]:
+          - generic:
+            - generic:
+              - img:
+                - generic:
+                  - generic [ref=f1e108] [cursor=pointer]
+                  - generic [ref=f1e109] [cursor=pointer]
+            - button [ref=f1e110] [cursor=pointer]
+          - generic:
+            - generic [ref=f1e113]:
+              - button "Zoom in" [ref=f1e114] [cursor=pointer]: +
+              - button "Zoom out" [ref=f1e115] [cursor=pointer]: −
+            - generic [ref=f1e116]:
+              - link "Leaflet" [ref=f1e117] [cursor=pointer]:
+                - /url: https://leafletjs.com
+              - text: "| Imagery © Google Maps"
+        - generic [ref=f1e122]:
+          - generic [ref=f1e123]:
+            - generic [ref=f1e124]:
+              - text: "Center:"
+              - strong [ref=f1e125]: 13.12790° N, 78.08898° E
+            - generic [ref=f1e126]: "|"
+            - generic [ref=f1e127]:
+              - text: "Scale:"
+              - strong [ref=f1e128]: 5000m × 5000m (25.00 km²)
+          - generic [ref=f1e129]:
+            - generic [ref=f1e130]:
+              - button "1.0 × 1.0 km" [ref=f1e131] [cursor=pointer]
+              - button "2.0 × 2.0 km" [ref=f1e132] [cursor=pointer]
+              - button "3.0 × 3.0 km" [ref=f1e133] [cursor=pointer]
+              - button "5.0 × 5.0 km" [ref=f1e134] [cursor=pointer]
+            - button "GENERATE 3D WORLD" [ref=f1e135] [cursor=pointer]
+      - generic [ref=f1e139]:
+        - generic [ref=f1e140]:
+          - heading "3D Reconstructed Terrain — Selected Region" [level=2] [ref=f1e143]
+          - generic [ref=f1e144]:
+            - button "Accuracy & Lineage Report" [ref=f1e145] [cursor=pointer]
+            - button "Fullscreen Studio" [ref=f1e150] [cursor=pointer]
+        - generic [ref=f1e155]:
+          - generic [ref=f1e156]: High-resolution LiDAR unavailable for this region — using Copernicus GLO-30 DEM (~30m DSM).
+          - generic [ref=f1e161]: 1:1 Metric Scale
+        - generic [ref=f1e162]:
+          - generic [ref=f1e163]:
+            - generic [ref=f1e165]:
+              - generic [ref=f1e166]:
+                - generic [ref=f1e167]:
+                  - button "Point Inspect" [ref=f1e168] [cursor=pointer]
+                  - button "Two-Point Δh" [ref=f1e172] [cursor=pointer]
+                - generic [ref=f1e180]:
+                  - button "Orbit Mode" [ref=f1e181] [cursor=pointer]
+                  - button "Drone Fly" [ref=f1e186] [cursor=pointer]
+                - button "Accuracy Report" [ref=f1e192] [cursor=pointer]
+                - generic [ref=f1e197]:
+                  - button "Perspective" [ref=f1e198] [cursor=pointer]
+                  - button "Top-Down" [ref=f1e199] [cursor=pointer]
+                  - button "Profile" [ref=f1e200] [cursor=pointer]
+                  - button "Reset camera view" [ref=f1e201] [cursor=pointer]
+              - generic [ref=f1e207]:
+                - button "Fit Terrain" [ref=f1e208] [cursor=pointer]
+                - button "Export Metric 3D (.glb)" [ref=f1e215] [cursor=pointer]
+              - generic: Click any 3D vertex to sample true DEM elevation and validate against source raster.
+              - generic [ref=f1e221]:
+                - generic: TRUE NORTH
+                - generic: 1 km Scale
+            - generic [ref=f1e226]:
+              - generic [ref=f1e227]:
+                - heading "Topographic Analysis & GIS Metrics" [level=3] [ref=f1e231]
+                - generic [ref=f1e232]: True Metric Elevation (1:1)
+              - generic [ref=f1e237]:
+                - generic [ref=f1e238]:
+                  - generic [ref=f1e239]: Min Elevation
+                  - generic [ref=f1e243]: 838.7 m
+                  - generic [ref=f1e244]: "Datum: EGM96 Geoid"
+                - generic [ref=f1e245]:
+                  - generic [ref=f1e246]: Max Elevation
+                  - generic [ref=f1e250]: 1221.8 m
+                  - generic [ref=f1e251]: Peak Summit
+                - generic [ref=f1e252]:
+                  - generic [ref=f1e253]: Mean Elevation
+                  - generic [ref=f1e256]: 943.8 m
+                  - generic [ref=f1e257]: σ = ±95.0 m
+                - generic [ref=f1e258]:
+                  - generic [ref=f1e259]: Vertical Relief (ΔE)
+                  - generic [ref=f1e262]: 383.0 m
+                  - generic [ref=f1e263]: "Area: 24.85 km²"
+              - generic [ref=f1e264]:
+                - generic [ref=f1e265]:
+                  - generic [ref=f1e266]: AUTHORITATIVE DATA QUALITY & GEODETIC LINEAGE
+                  - generic [ref=f1e272]:
+                    - generic [ref=f1e273]: REAL DATA
+                    - generic [ref=f1e277]: DSM (Surface Elevation)
+                - generic [ref=f1e278]:
+                  - generic [ref=f1e279]:
+                    - generic [ref=f1e280]: SOURCE DATASET
+                    - strong [ref=f1e281]: Copernicus DEM GLO-30 (ESA / AWS Open Data)
+                  - generic [ref=f1e282]:
+                    - generic [ref=f1e283]: DATASET TYPE
+                    - strong [ref=f1e284]: DSM (Surface Elevation)
+                  - generic [ref=f1e285]:
+                    - generic [ref=f1e286]: NATIVE SOURCE RES.
+                    - strong [ref=f1e287]: ~30 m (1 arc-second nominal)
+                  - generic [ref=f1e288]:
+                    - generic [ref=f1e289]: VISUALIZATION RES.
+                    - strong [ref=f1e290]: 39.4 m
+                  - generic [ref=f1e291]:
+                    - generic [ref=f1e292]: MESH VERTEX GRID
+                    - strong [ref=f1e293]: 128x128 (16,384 vertices)
+                  - generic [ref=f1e294]:
+                    - generic [ref=f1e295]: VERTICAL DATUM
+                    - strong [ref=f1e296]: EGM2008 / EGM96 Geoid (Meters)
+                  - generic [ref=f1e297]:
+                    - generic [ref=f1e298]: HORIZONTAL CRS
+                    - strong [ref=f1e299]: EPSG:4326 (WGS84) / Web Mercator EPSG:3857
+                  - generic [ref=f1e300]:
+                    - generic [ref=f1e301]: VERTICAL ACCURACY
+                    - strong [ref=f1e302]: ±4m absolute vertical accuracy (Copernicus GLO-30 Spec)
+                - generic [ref=f1e303]:
+                  - strong [ref=f1e306]: "Resolution Transparency:"
+                  - text: Visualization resolution (39.4 m) is interpolated from the ~30 m (1 arc-second nominal) native source and does not represent 39.4 m field survey accuracy.
+              - generic [ref=f1e307]:
+                - generic [ref=f1e308]:
+                  - generic [ref=f1e309]:
+                    - generic [ref=f1e310]: PEAK / SUMMIT POINT
+                    - generic [ref=f1e312]: 1221.75 m
+                  - generic [ref=f1e313]:
+                    - generic [ref=f1e314]:
+                      - text: "Latitude:"
+                      - strong [ref=f1e315]: 13.147879°
+                    - generic [ref=f1e316]:
+                      - text: "Longitude:"
+                      - strong [ref=f1e317]: 78.096066°
+                    - generic [ref=f1e318]:
+                      - text: "Slope:"
+                      - strong [ref=f1e319]: 10.4°
+                    - generic [ref=f1e320]:
+                      - text: "Aspect:"
+                      - strong [ref=f1e321]: 157.52° (S)
+                - generic [ref=f1e322]:
+                  - generic [ref=f1e323]:
+                    - generic [ref=f1e324]: VALLEY / LOWEST POINT
+                    - generic [ref=f1e326]: 838.73 m
+                  - generic [ref=f1e327]:
+                    - generic [ref=f1e328]:
+                      - text: "Latitude:"
+                      - strong [ref=f1e329]: 13.116049°
+                    - generic [ref=f1e330]:
+                      - text: "Longitude:"
+                      - strong [ref=f1e331]: 78.112045°
+                    - generic [ref=f1e332]:
+                      - text: "Slope:"
+                      - strong [ref=f1e333]: 3.02°
+                    - generic [ref=f1e334]:
+                      - text: "Aspect:"
+                      - strong [ref=f1e335]: 69.65° (E)
+              - generic [ref=f1e336]:
+                - generic [ref=f1e337]:
+                  - generic [ref=f1e338]: Topographic Slope Classification (Horn's Metric Algorithm)
+                  - generic [ref=f1e342]: "Average Slope: 9.29°"
+                - generic [ref=f1e343]:
+                  - generic [ref=f1e344]:
+                    - generic "Gentle (< 5°)" [ref=f1e345]
+                    - generic "Moderate (5° - 15°)" [ref=f1e346]
+                    - generic "Steep (15° - 30°)" [ref=f1e347]
+                    - generic "Cliff (> 30°)" [ref=f1e348]
+                  - generic [ref=f1e349]:
+                    - generic [ref=f1e350]: Gentle (<5°)
+                    - generic [ref=f1e352]: Moderate (5°-15°)
+                    - generic [ref=f1e354]: Steep (15°-30°)
+                    - generic [ref=f1e356]: Cliff (>30°)
+          - generic [ref=f1e358]:
+            - generic [ref=f1e359]:
+              - generic [ref=f1e360]:
+                - heading "3D Geospatial Controls" [level=3] [ref=f1e363]
+                - generic [ref=f1e364]: 1:1 Metric Space
+              - generic [ref=f1e365]:
+                - generic [ref=f1e366]:
+                  - generic [ref=f1e367]: "Terrain Analysis & Material Modes:"
+                  - generic [ref=f1e372]: elevation
+                - generic [ref=f1e373]:
+                  - button "Elevation" [ref=f1e374] [cursor=pointer]
+                  - button "Hillshade" [ref=f1e375] [cursor=pointer]
+                  - button "Satellite" [ref=f1e376] [cursor=pointer]
+                  - button "Hybrid" [ref=f1e377] [cursor=pointer]
+                  - button "Slope Map" [ref=f1e378] [cursor=pointer]
+                  - button "Landslide" [ref=f1e379] [cursor=pointer]
+                  - button "Wireframe" [ref=f1e383] [cursor=pointer]
+                  - button "Point Cloud" [ref=f1e384] [cursor=pointer]
+              - generic [ref=f1e385]:
+                - generic [ref=f1e386]:
+                  - generic [ref=f1e387]: "Vertical Exaggeration:"
+                  - generic [ref=f1e393]: 1.0× (TRUE 1:1 METRIC)
+                - slider [ref=f1e394] [cursor=pointer]: "1"
+                - generic [ref=f1e395]:
+                  - generic [ref=f1e396]: 0.5×
+                  - generic [ref=f1e397]: 1.0× (True Physical)
+                  - generic [ref=f1e398]: 2.5×
+                  - generic [ref=f1e399]: 5.0×
+              - generic [ref=f1e400]:
+                - generic [ref=f1e401]: "Hypsometric Shading Palette:"
+                - generic [ref=f1e408]:
+                  - button "Topographic Earth" [ref=f1e409] [cursor=pointer]
+                  - button "Viridis Scientific" [ref=f1e412] [cursor=pointer]
+                  - button "Magma / Relief" [ref=f1e415] [cursor=pointer]
+                  - button "Thermal / Infrared" [ref=f1e418] [cursor=pointer]
+                  - button "Forest Highlands" [ref=f1e421] [cursor=pointer]
+                  - button "Satellite Elevation" [ref=f1e424] [cursor=pointer]
+              - generic [ref=f1e427]:
+                - text: Overlays & Vectors
+                - generic [ref=f1e429]:
+                  - generic [ref=f1e430]: Elevation Contours (20m)
+                  - button [ref=f1e434] [cursor=pointer]
+                - generic [ref=f1e436]:
+                  - generic [ref=f1e437]: Wireframe Overlay
+                  - button [ref=f1e441] [cursor=pointer]
+                - generic [ref=f1e443]:
+                  - generic [ref=f1e444]: Spatial Metric Grid
+                  - button [ref=f1e447] [cursor=pointer]
+            - generic [ref=f1e450]:
+              - heading "DEM Point Elevation & Inspection" [level=3] [ref=f1e455]
+              - generic [ref=f1e456]: Click any point on the 3D terrain to query exact DEM elevation and validate against source raster data.
+  - contentinfo [ref=f1e459]:
+    - generic [ref=f1e460]:
+      - generic [ref=f1e461]: Smart India Hackathon 2026 — Problem Statement SIH26175
+      - generic [ref=f1e462]: 3D Terrain Reconstruction & Geospatial Analysis

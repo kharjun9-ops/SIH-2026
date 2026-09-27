@@ -64,7 +64,7 @@ interface ReconstructionProps {
   onDataModeChange: (mode: 'real' | 'demo') => void;
   onImageAnalyzed: (analysis: ImageAnalysisResponse) => void;
   onSetTerrainData?: (data: TerrainReconstructResponse) => void;
-  onNavigateToStudio: () => void;
+  onNavigateToStudio?: () => void;
 }
 
 export const Reconstruction: React.FC<ReconstructionProps> = ({
@@ -89,6 +89,12 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
   const [customLat, setCustomLat] = useState<string>(centerLat.toString());
   const [customLon, setCustomLon] = useState<string>(centerLon.toString());
   const [customRadius, setCustomRadius] = useState<string>(radiusMeters.toString());
+
+  useEffect(() => {
+    setCustomLat(centerLat.toString());
+    setCustomLon(centerLon.toString());
+    setCustomRadius(radiusMeters.toString());
+  }, [centerLat, centerLon, radiusMeters]);
 
   // 3D Controls state (1.0x True Scale by default!)
   const [exaggeration, setExaggeration] = useState<number>(1.0);
@@ -300,36 +306,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
             Terrain Reconstruction Pipeline
           </h1>
         </div>
-
-        {/* Data Mode Switcher + Action Header Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          
-          {/* REAL DATA MODE vs DEMO MODE Switcher (Requirement #1) */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => onDataModeChange('real')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                dataMode === 'real'
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              REAL DATA MODE
-            </button>
-            <button
-              onClick={() => onDataModeChange('demo')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                dataMode === 'demo'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              DEMO MODE
-            </button>
-          </div>
-        </div>
       </div>
 
 
@@ -470,7 +446,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 step="any"
                 value={customLat}
                 onChange={(e) => setCustomLat(e.target.value)}
-                placeholder="e.g. 12.9716"
+                placeholder="e.g. 27.9881"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
               />
             </div>
@@ -484,7 +460,7 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
                 step="any"
                 value={customLon}
                 onChange={(e) => setCustomLon(e.target.value)}
-                placeholder="e.g. 77.5946"
+                placeholder="e.g. 86.9250"
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
               />
             </div>
@@ -648,24 +624,6 @@ export const Reconstruction: React.FC<ReconstructionProps> = ({
               <h2 className="text-xl font-bold text-white tracking-tight">
                 3D Reconstructed Terrain &mdash; {terrainData.region_name || 'Selected Region'}
               </h2>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={handleOpenAccuracyReport}
-                className="px-3.5 py-2 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Accuracy & Lineage Report</span>
-              </button>
-
-              <button
-                onClick={onNavigateToStudio}
-                className="px-3.5 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-                <span>Fullscreen Studio</span>
-              </button>
             </div>
           </div>
 

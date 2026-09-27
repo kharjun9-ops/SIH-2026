@@ -1,0 +1,87 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e10] [cursor=pointer]:
+        - generic [ref=f2e11]:
+          - generic [ref=f2e12]: TERRAIN3D
+          - generic [ref=f2e13]: SIH26175
+        - paragraph [ref=f2e14]: GIS Elevation & 3D Reconstruction Pipeline
+      - generic [ref=f2e15]:
+        - generic [ref=f2e19]: "Preset:"
+        - combobox "Preset Sample Region" [ref=f2e20] [cursor=pointer]:
+          - option "Choose Region Preset..." [selected]
+      - navigation [ref=f2e21]:
+        - button "Overview" [ref=f2e22] [cursor=pointer]
+        - button "Reconstruct" [ref=f2e23] [cursor=pointer]
+        - button "360° Room Scan" [ref=f2e29] [cursor=pointer]
+        - button "Analysis" [ref=f2e34] [cursor=pointer]
+        - button "About" [ref=f2e38] [cursor=pointer]
+  - main [ref=f2e42]:
+    - generic [ref=f2e43]:
+      - generic [ref=f2e44]:
+        - generic [ref=f2e45]: Smart India Hackathon 2026 — Problem Statement SIH26175
+        - generic [ref=f2e49]:
+          - heading "3D Terrain Reconstruction" [level=1] [ref=f2e50]
+          - paragraph [ref=f2e51]: Transform geographic elevation data and Digital Elevation Models (DEM) into an interactive, high-fidelity 3D representation of the terrain in real-time.
+        - generic [ref=f2e52]:
+          - button "Start Reconstruction" [ref=f2e53] [cursor=pointer]
+          - button "View Demo (Mount Fuji 3,776m)" [ref=f2e57] [cursor=pointer]
+        - generic [ref=f2e62]: "Quick Explore:"
+      - generic [ref=f2e64]:
+        - generic [ref=f2e65]:
+          - heading "Core Geospatial & CV Capabilities" [level=2] [ref=f2e66]
+          - paragraph [ref=f2e67]: A comprehensive pipeline engineered for accuracy, responsiveness, and multi-modal terrain alignment.
+        - generic [ref=f2e68]:
+          - generic [ref=f2e69]:
+            - heading "Elevation Mapping" [level=3] [ref=f2e76]
+            - paragraph [ref=f2e77]: Retrieve real-time elevation grids from SRTM, Copernicus 30m, Open-Elevation, and local GeoTIFF tiles with bilinear and bicubic resampling.
+          - generic [ref=f2e78]:
+            - heading "3D Terrain Mesh" [level=3] [ref=f2e82]
+            - paragraph [ref=f2e83]: Convert elevation matrices into optimized Three.js BufferGeometry with dynamic hypsometric colormapping, wireframe, point cloud, and shadows.
+          - generic [ref=f2e84]:
+            - heading "Terrain Analysis" [level=3] [ref=f2e88]
+            - paragraph [ref=f2e89]: Calculate Horn's topographic slope, aspect orientation, contour intervals, and real-time raycasting inspection of any surface vertex.
+          - generic [ref=f2e90]:
+            - heading "Two-Point Height Difference" [level=3] [ref=f2e98]
+            - paragraph [ref=f2e99]: Pick reference points A & B to compute height differences ($\Delta h$), surface distances, slope gradients, and cross-section profiles.
+          - generic [ref=f2e100]:
+            - heading "Single-Image Support" [level=3] [ref=f2e104]
+            - paragraph [ref=f2e105]: Upload landscape photos to extract OpenCV ORB keypoints, terrain horizon lines, and AI monocular relative depth heatmaps.
+          - generic [ref=f2e106]:
+            - heading "3D Asset Export" [level=3] [ref=f2e111]
+            - paragraph [ref=f2e112]: Export generated terrain models directly into standard GLTF/GLB or OBJ format for downstream CAD, GIS, or Unreal/Unity game engine workflows.
+      - generic [ref=f2e114]:
+        - generic [ref=f2e115]:
+          - generic [ref=f2e116]:
+            - text: END-TO-END PIPELINE ARCHITECTURE
+            - heading "Deterministic GIS Elevation + Computer Vision" [level=3] [ref=f2e117]
+          - generic [ref=f2e118]: Full Stack MVP Ready
+        - generic [ref=f2e123]:
+          - generic [ref=f2e124]:
+            - generic [ref=f2e125]: "01"
+            - generic [ref=f2e126]: Location Pick
+            - generic [ref=f2e127]: Search or Lat/Lon
+          - generic [ref=f2e128]:
+            - generic [ref=f2e129]: "02"
+            - generic [ref=f2e130]: Area Bounding
+            - generic [ref=f2e131]: Calculated km²
+          - generic [ref=f2e132]:
+            - generic [ref=f2e133]: "03"
+            - generic [ref=f2e134]: DEM Retrieval
+            - generic [ref=f2e135]: SRTM / GeoTIFF
+          - generic [ref=f2e136]:
+            - generic [ref=f2e137]: "04"
+            - generic [ref=f2e138]: GIS Processing
+            - generic [ref=f2e139]: Slope & Aspect
+          - generic [ref=f2e140]:
+            - generic [ref=f2e141]: "05"
+            - generic [ref=f2e142]: Triangulation
+            - generic [ref=f2e143]: BufferGeometry
+          - generic [ref=f2e144]:
+            - generic [ref=f2e145]: "06"
+            - generic [ref=f2e146]: Interactive 3D
+            - generic [ref=f2e147]: Three.js & Drei
+  - contentinfo [ref=f2e148]:
+    - generic [ref=f2e149]:
+      - generic [ref=f2e150]: Smart India Hackathon 2026 — Problem Statement SIH26175
+      - generic [ref=f2e151]: 3D Terrain Reconstruction & Geospatial Analysis

@@ -114,21 +114,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           <button
-            onClick={() => onNavigate('viewer')}
-            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
-              currentPage === 'viewer'
-                ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm shadow-cyan-500/10'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Eye className="w-4 h-4" />
-            <span>3D Studio</span>
-            {hasReconstructedData && (
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            )}
-          </button>
-
-          <button
             onClick={() => onNavigate('analysis')}
             className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 ${
               currentPage === 'analysis'

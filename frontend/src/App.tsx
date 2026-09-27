@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar/Navbar';
 import { Landing } from './pages/Landing';
 import { Reconstruction } from './pages/Reconstruction';
-import { Viewer } from './pages/Viewer';
 import { Analysis } from './pages/Analysis';
 import { About } from './pages/About';
 import { DepthPipeline } from './pages/DepthPipeline';
@@ -18,21 +17,21 @@ import { api } from './services/api';
 export const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<string>('landing');
   const [samples, setSamples] = useState<SampleRegion[]>([]);
-  const [selectedSample, setSelectedSample] = useState<string>('bengaluru_pilot');
+  const [selectedSample, setSelectedSample] = useState<string>('mount_everest');
   
-  // Default coordinates: Bengaluru Central Pilot (12.9716, 77.5946)
-  const [centerLat, setCenterLat] = useState<number>(12.9716);
-  const [centerLon, setCenterLon] = useState<number>(77.5946);
-  const [radiusMeters, setRadiusMeters] = useState<number>(1500);
+  // Default coordinates: Mount Everest & Khumbu (27.9881, 86.9250)
+  const [centerLat, setCenterLat] = useState<number>(27.9881);
+  const [centerLon, setCenterLon] = useState<number>(86.9250);
+  const [radiusMeters, setRadiusMeters] = useState<number>(3000);
   
   const [bounds, setBounds] = useState<LatLonBounds>({
-    min_lat: 12.9581,
-    max_lat: 12.9851,
-    min_lon: 77.5808,
-    max_lon: 77.6084,
-    center_lat: 12.9716,
-    center_lon: 77.5946,
-    radius_meters: 1500
+    min_lat: 27.9612,
+    max_lat: 28.0150,
+    min_lon: 86.8945,
+    max_lon: 86.9555,
+    center_lat: 27.9881,
+    center_lon: 86.9250,
+    radius_meters: 3000
   });
 
   const [dataMode, setDataMode] = useState<'real' | 'demo'>('real');
@@ -47,13 +46,13 @@ export const App: React.FC = () => {
         const { samples: sampleList } = await api.fetchSamples();
         setSamples(sampleList);
         
-        // Auto-reconstruct initial default region: Bengaluru Central Pilot with real data mode
+        // Auto-reconstruct initial default region: Mount Everest & Khumbu with real data mode
         handleReconstruct({ 
-          latitude: 12.9716, 
-          longitude: 77.5946, 
-          radius: 1500, 
+          latitude: 27.9881, 
+          longitude: 86.9250, 
+          radius: 3000, 
           data_mode: 'real',
-          sample_id: 'bengaluru_pilot' 
+          sample_id: 'mount_everest' 
         });
       } catch (err) {
         console.error('Failed to fetch sample regions:', err);
@@ -135,7 +134,7 @@ export const App: React.FC = () => {
 
   const handleViewDemoFromLanding = (sampleId: string) => {
     handleSelectSample(sampleId);
-    setCurrentPage('viewer');
+    setCurrentPage('reconstruction');
   };
 
   return (
@@ -181,16 +180,6 @@ export const App: React.FC = () => {
             }}
             onImageAnalyzed={setImageAnalysis}
             onSetTerrainData={(data) => setTerrainData(data)}
-            onNavigateToStudio={() => setCurrentPage('viewer')}
-          />
-        )}
-
-        {currentPage === 'viewer' && (
-          <Viewer
-            terrainData={terrainData}
-            samples={samples}
-            onSelectSample={handleSelectSample}
-            onNavigateToReconstruct={() => setCurrentPage('reconstruction')}
           />
         )}
 
