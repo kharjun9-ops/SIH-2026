@@ -13,6 +13,6 @@ FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 5173
+EXPOSE 80 5173 10000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["/bin/sh", "-c", "if [ -n \"$BACKEND_URL\" ]; then sed -i \"s|http://127.0.0.1:8000|$BACKEND_URL|g\" /etc/nginx/conf.d/default.conf; fi; if [ -n \"$PORT\" ]; then sed -i \"s|listen 10000;|listen $PORT;|g\" /etc/nginx/conf.d/default.conf; fi; exec nginx -g 'daemon off;'"]
