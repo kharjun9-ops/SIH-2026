@@ -1,5 +1,15 @@
-FROM python:3.11-slim
+# Stage 1: Build the React/Vite Frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
 
+COPY frontend/package*.json ./
+RUN npm install
+
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python Backend + Full-Stack Host
+FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies for GDAL, OpenCV, Open3D (EGL/GL/GOMP), and compilation
@@ -22,6 +32,9 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 # Copy backend source code and data
 COPY backend ./backend
 COPY data ./data
+
+# Copy built frontend assets from Stage 1 into frontend/dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 WORKDIR /app/backend
 

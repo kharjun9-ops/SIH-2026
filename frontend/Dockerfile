@@ -1,18 +1,46 @@
-FROM node:20-alpine AS build
+# Stage 1: Build the React/Vite Frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
 
-WORKDIR /app
-
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY . .
+COPY frontend/ ./
 RUN npm run build
 
-FROM nginx:alpine
+# Stage 2: Python Backend + Full-Stack Host
+FROM python:3.11-slim
+WORKDIR /app
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install system dependencies for GDAL, OpenCV, Open3D (EGL/GL/GOMP), and compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libgl1 \
+    libegl1 \
+    libglx0 \
+    libopengl0 \
+    libgomp1 \
+    libglib2.0-0 \
+    libgdal-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 80 5173 10000
+# Install Python requirements
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-CMD ["/bin/sh", "-c", "if [ -n \"$BACKEND_URL\" ]; then sed -i \"s|http://127.0.0.1:8000|$BACKEND_URL|g\" /etc/nginx/conf.d/default.conf; fi; if [ -n \"$PORT\" ]; then sed -i \"s|listen 10000;|listen $PORT;|g\" /etc/nginx/conf.d/default.conf; fi; exec nginx -g 'daemon off;'"]
+# Copy backend source code and data
+COPY backend ./backend
+COPY data ./data
+
+# Copy built frontend assets from Stage 1 into frontend/dist
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+WORKDIR /app/backend
+
+# Default PORT for Render (Render sets $PORT dynamically)
+ENV PORT=8000
+EXPOSE ${PORT}
+
+# Run FastAPI with uvicorn bound to $PORT
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

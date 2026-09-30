@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 from app.config import settings
 from app.api.terrain import router as terrain_router
@@ -49,8 +49,8 @@ app.include_router(landslide_router, prefix=settings.API_V1_PREFIX)
 app.include_router(depth_pipeline_router, prefix=settings.API_V1_PREFIX)
 app.include_router(room_router, prefix=settings.API_V1_PREFIX)
 
-@app.get("/")
-def root():
+@app.get("/api")
+def api_root():
     return {
         "status": "online",
         "project": settings.PROJECT_NAME,
@@ -74,6 +74,24 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "healthy"}
+
+# Serve frontend static assets if available (Unified full-stack container deployment)
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+
+if os.path.exists(frontend_dist) and os.path.exists(os.path.join(frontend_dist, "index.html")):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+
+    @app.exception_handler(404)
+    async def not_found_spa_handler(request: Request, exc):
+        if request.method == "GET" and not request.url.path.startswith("/api"):
+            index_path = os.path.join(frontend_dist, "index.html")
+            if os.path.exists(index_path):
+                return FileResponse(index_path)
+        return JSONResponse(status_code=404, content={"detail": "Not Found"})
+else:
+    @app.get("/")
+    def fallback_root():
+        return api_root()
 
 if __name__ == "__main__":
     import uvicorn
