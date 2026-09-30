@@ -2,10 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for GDAL, OpenCV, and compilation
+# Install system dependencies for GDAL, OpenCV, Open3D (EGL/GL/GOMP), and compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
+    libegl1 \
+    libglx0 \
+    libopengl0 \
+    libgomp1 \
     libglib2.0-0 \
     libgdal-dev \
     curl \

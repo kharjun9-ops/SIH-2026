@@ -18,7 +18,13 @@ import uuid
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple
 import numpy as np
-import open3d as o3d
+try:
+    import open3d as o3d
+    HAS_OPEN3D = True
+except Exception as _o3d_err:
+    o3d = None
+    HAS_OPEN3D = False
+    logging.getLogger(__name__).warning('Open3D unavailable: %s', _o3d_err)
 import cv2
 
 from app.config import settings
@@ -98,6 +104,28 @@ class DenseMVSService:
                 measured_perimeter_m=0.0,
                 wall_area_sqm=0.0,
                 point_count=0,
+                triangle_count=0,
+                log_steps=log_steps
+            )
+
+        if not HAS_OPEN3D or o3d is None:
+            log_steps.append('Open3D is not available in the current environment; returning sparse points.')
+            return DenseMVSResult(
+                is_success=True,
+                dense_points_xyz=[p.xyz for p in sparse_points],
+                dense_colors_rgb=[p.rgb for p in sparse_points],
+                mesh_vertices=[],
+                mesh_faces=[],
+                mesh_obj_path=None,
+                detected_planes=[],
+                measured_length_m=0.0,
+                measured_width_m=0.0,
+                measured_height_m=0.0,
+                measured_floor_area_sqm=0.0,
+                measured_volume_cbm=0.0,
+                measured_perimeter_m=0.0,
+                wall_area_sqm=0.0,
+                point_count=len(sparse_points),
                 triangle_count=0,
                 log_steps=log_steps
             )
