@@ -1,0 +1,22 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+numpy>=1.24.0
+scipy>=1.11.0
+rasterio>=1.3.0
+shapely>=2.0.0
+trimesh>=4.0.0
+matplotlib>=3.8.0
+pillow>=10.0.0
+opencv-python-headless>=4.8.0
+requests>=2.31.0
+httpx>=0.25.0
+laspy[lazrs]>=2.5.0
+python-multipart>=0.0.9
+python-dotenv>=1.0.0
+aiofiles>=23.2.0
+scikit-learn>=1.3.0
+joblib>=1.3.0
+# Multi-view SfM & 3D Reconstruction
+pycolmap>=0.6.0
+open3d>=0.18.0

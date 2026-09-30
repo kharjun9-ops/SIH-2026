@@ -1,0 +1,67 @@
+[
+  {
+    "model_id": "baseline_mce",
+    "model_name": "Baseline Weighted Overlay (MCE)",
+    "algorithm": "Multi-Criteria Evaluation (Heuristic Weights)",
+    "is_active": false,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.06,
+    "validation_strategy": "Spatial Held-Out Test Fold"
+  },
+  {
+    "model_id": "logistic_regression",
+    "model_name": "L2-Regularized Logistic Regression",
+    "algorithm": "L2-Regularized Logistic Regression",
+    "is_active": true,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.0,
+    "validation_strategy": "Spatial Block Cross-Validation (5-Fold)"
+  },
+  {
+    "model_id": "random_forest",
+    "model_name": "Random Forest Ensemble (100 Trees)",
+    "algorithm": "Random Forest Ensemble (100 Trees)",
+    "is_active": false,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.001,
+    "validation_strategy": "Spatial Block Cross-Validation (5-Fold)"
+  },
+  {
+    "model_id": "gradient_boosting",
+    "model_name": "Gradient Boosted Decision Trees",
+    "algorithm": "Gradient Boosted Decision Trees",
+    "is_active": false,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.0,
+    "validation_strategy": "Spatial Block Cross-Validation (5-Fold)"
+  },
+  {
+    "model_id": "extra_trees",
+    "model_name": "Extra Trees Classifier",
+    "algorithm": "Extra Trees Classifier",
+    "is_active": false,
+    "roc_auc": 1.0,
+    "pr_auc": 1.0,
+    "f1_score": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "brier_score": 0.001,
+    "validation_strategy": "Spatial Block Cross-Validation (5-Fold)"
+  }
+]

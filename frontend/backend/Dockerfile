@@ -1,11 +1,11 @@
-﻿# Stage 1: Build the React/Vite Frontend
+# Stage 1: Build the React/Vite Frontend
 FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY . ./
+COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Python Backend + Full-Stack Host
