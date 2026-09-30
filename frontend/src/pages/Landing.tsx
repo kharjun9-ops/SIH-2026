@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Mountain, 
   Layers, 
@@ -11,166 +11,425 @@ import {
   Cpu, 
   Globe2, 
   Ruler, 
-  CheckCircle2 
+  CheckCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { SampleRegion } from '../types';
+import '../depthwizard.css';
+
+import mountain from '../assets/mountain.png';
+import depthMountain from '../assets/mountain-aligned-3d.png';
 
 interface LandingProps {
   onStartReconstruction: () => void;
   onViewDemo: (sampleId: string) => void;
   samples: SampleRegion[];
+  onNavigate?: (page: string) => void;
 }
+
+const layers = ["RGB", "DEPTH MAP", "POINT CLOUD", "MESH"];
 
 export const Landing: React.FC<LandingProps> = ({
   onStartReconstruction,
   onViewDemo,
   samples,
+  onNavigate = () => {},
 }) => {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [mouse, setMouse] = useState({ x: 50, y: 50 });
+  const [inside, setInside] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [activeLayer, setActiveLayer] = useState<number>(0);
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+
+    const move = (event: MouseEvent) => {
+      const rect = hero.getBoundingClientRect();
+      setMouse({
+        x: ((event.clientX - rect.left) / rect.width) * 100,
+        y: ((event.clientY - rect.top) / rect.height) * 100
+      });
+      setInside(true);
+    };
+
+    const leave = () => setInside(false);
+
+    hero.addEventListener('mousemove', move);
+    hero.addEventListener('mouseleave', leave);
+
+    return () => {
+      hero.removeEventListener('mousemove', move);
+      hero.removeEventListener('mouseleave', leave);
+    };
+  }, []);
+
+  const handleStartWithTransition = () => {
+    if (transitioning) return;
+    setTransitioning(true);
+
+    setTimeout(() => {
+      onStartReconstruction();
+    }, 2800);
+
+    setTimeout(() => setTransitioning(false), 3800);
+  };
+
+  const scrollToContent = () => {
+    contentRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col space-y-16 pb-20">
+    <div className="depthwizard-container min-h-screen bg-[#050b11] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
       
-      {/* Hero Section */}
-      <section className="relative pt-12 pb-16 px-4 lg:px-8 max-w-7xl mx-auto w-full text-center space-y-8 overflow-hidden">
-        
-        {/* Glowing Background Radial Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-cyan-500/15 via-blue-600/10 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
-
-        {/* SIH Hackathon Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-medium shadow-lg shadow-cyan-500/10">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Smart India Hackathon 2026 &mdash; Problem Statement SIH26175</span>
+      {/* ============================================================== */}
+      {/* 1. CINEMATIC DEPTHWIZARD HERO (Friend's Interactive Experience) */}
+      {/* ============================================================== */}
+      <section
+        ref={heroRef}
+        className={transitioning ? "depthwizard-hero transitioning" : "depthwizard-hero"}
+        style={{
+          // @ts-ignore
+          "--mx": `${mouse.x}%`,
+          "--my": `${mouse.y}%`
+        }}
+      >
+        {/* Base Mountain Photo */}
+        <div className="mountain">
+          <img src={mountain} alt="Mountain landscape" />
         </div>
 
-        {/* Main Hero Title & Subtitle */}
-        <div className="max-w-4xl mx-auto space-y-4">
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-            3D Terrain <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 bg-clip-text text-transparent">Reconstruction</span>
+        {/* Real-time Cursor Depth Revealer */}
+        <div className={inside ? "cursor-depth visible" : "cursor-depth"}>
+          <img src={depthMountain} alt="Depth map representation" />
+          <div className="depth-blue" />
+          <div className="depth-lines" />
+          <div className="depth-dots" />
+        </div>
+
+        {/* DepthWizard Top Bar Navigation */}
+        <header className="dw-header">
+          <div className="dw-brand" onClick={() => onNavigate('landing')}>
+            <div className="dw-brand-symbol">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="tracking-widest font-bold">DEPTHWIZARD</span>
+            <span className="text-[10px] text-cyan-400 font-mono px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40">
+              SIH26175
+            </span>
+          </div>
+
+          <nav>
+            <button onClick={() => onStartReconstruction()}>3D RECONSTRUCTION</button>
+            <button onClick={() => onNavigate('depth')}>DEPTH PIPELINE</button>
+            <button onClick={() => onNavigate('analysis')}>GIS ANALYSIS</button>
+            <button onClick={() => onNavigate('about')}>ABOUT</button>
+          </nav>
+
+          <button className="dw-start-button flex items-center gap-1.5" onClick={handleStartWithTransition}>
+            <span>START RECONSTRUCTION</span>
+            <span className="text-cyan-400">↗</span>
+          </button>
+        </header>
+
+        {/* Hero Spatial Intelligence Typography */}
+        <div className="dw-hero-text">
+          <div className="dw-eyebrow">
+            <span className="dw-eyebrow-line" />
+            <span>SPATIAL INTELLIGENCE / SIH26175</span>
+          </div>
+
+          <h1>
+            THE WORLD
+            <br />
+            <span>IN DEPTH</span>
           </h1>
-          <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-            Transform geographic elevation data and Digital Elevation Models (DEM) into an interactive, high-fidelity 3D representation of the terrain in real-time.
+
+          <p>
+            Transform geographic elevation data and Digital Elevation Models (DEM)
+            <br />
+            into interactive, high-fidelity 3D terrain in real-time.
           </p>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-          <button
-            onClick={onStartReconstruction}
-            className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105 transition-all flex items-center gap-2 group"
-          >
-            <span>Start Reconstruction</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-
-          <button
-            onClick={() => onViewDemo('mount_fuji')}
-            className="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 text-sm sm:text-base font-semibold transition-all hover:border-cyan-500/50 flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4 text-cyan-400" />
-            <span>View Demo (Mount Fuji 3,776m)</span>
-          </button>
-        </div>
-
-        {/* Quick Demo Location Badges */}
-        <div className="pt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs text-slate-500 font-medium">Quick Explore:</span>
-          {samples.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onViewDemo(s.id)}
-              className="px-3 py-1 bg-slate-900/60 hover:bg-cyan-950 hover:text-cyan-300 text-slate-400 border border-slate-800 hover:border-cyan-800 rounded-lg text-xs font-mono transition-all"
-            >
-              {s.name.split('(')[0]} ({s.peak_elevation}m)
+          <div className="flex items-center gap-6 mt-8">
+            <button className="dw-explore-button" onClick={scrollToContent}>
+              EXPLORE CAPABILITIES <span>↓</span>
             </button>
+            <button 
+              onClick={handleStartWithTransition}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs tracking-wider uppercase shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2 hover:scale-105"
+            >
+              <span>Launch 3D Pipeline</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Layer Selector */}
+        <div className="dw-visualize">
+          <div className="dw-visualize-heading">
+            <span>VISUALIZE</span>
+            <span>04</span>
+          </div>
+          {layers.map((item, index) => (
+            <div
+              key={item}
+              className={activeLayer === index ? "dw-visual-item active" : "dw-visual-item"}
+              onClick={() => {
+                setActiveLayer(index);
+                if (index > 0) {
+                  onStartReconstruction();
+                }
+              }}
+            >
+              <span>0{index + 1}</span>
+              <strong>{item}</strong>
+            </div>
           ))}
         </div>
 
-      </section>
+        {/* Mouse Scanning Reticle */}
+        {inside && (
+          <>
+            <div
+              className="scanner"
+              style={{ left: `${mouse.x}%`, top: `${mouse.y}%` }}
+            >
+              <div className="scanner-ring" />
+              <div className="scanner-center" />
+            </div>
+            <div
+              className="scan-text"
+              style={{
+                left: `calc(${mouse.x}% + 15px)`,
+                top: `calc(${mouse.y}% + 15px)`
+              }}
+            >
+              HOVER TO SCAN DEPTH
+            </div>
+          </>
+        )}
 
-      {/* Feature Cards Grid (Requirement #6) */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Core Geospatial & CV Capabilities
-          </h2>
-          <p className="text-sm text-slate-400 max-w-xl mx-auto">
-            A comprehensive pipeline engineered for accuracy, responsiveness, and multi-modal terrain alignment.
-          </p>
+        {/* Key Metrics */}
+        <div className="dw-metrics">
+          <div>
+            <strong>2.4M+</strong>
+            <span>SCANS PROCESSED</span>
+          </div>
+          <div>
+            <strong>CM-LEVEL</strong>
+            <span>PRECISION</span>
+          </div>
+          <div>
+            <strong>REAL-TIME</strong>
+            <span>3D RECONSTRUCTION</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          
-          {/* Card 1: Elevation Mapping */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Globe2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Elevation Mapping</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Retrieve real-time elevation grids from SRTM, Copernicus 30m, Open-Elevation, and local GeoTIFF tiles with bilinear and bicubic resampling.
-            </p>
+        {/* Scroll CTA indicator */}
+        <div className="dw-scroll" onClick={scrollToContent}>
+          <span>SCROLL DOWN</span>
+          <i />
+        </div>
+
+        {/* Cinematic Particle Dissolve & Warp Transition Overlay */}
+        <div className="dw-transition">
+          <div className="dw-transition-photo">
+            <img src={mountain} alt="" />
           </div>
 
-          {/* Card 2: 3D Terrain Mesh */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-              <Mountain className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">3D Terrain Mesh</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Convert elevation matrices into optimized Three.js BufferGeometry with dynamic hypsometric colormapping, wireframe, point cloud, and shadows.
-            </p>
+          <div className="dw-transition-depth">
+            <img src={depthMountain} alt="" />
           </div>
 
-          {/* Card 3: Terrain Analysis */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <BarChart3 className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Terrain Analysis</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Calculate Horn's topographic slope, aspect orientation, contour intervals, and real-time raycasting inspection of any surface vertex.
-            </p>
+          <div className="dw-particle-field">
+            {Array.from({ length: 260 }, (_, index) => {
+              const x = (index * 37 + 11) % 100;
+              const y = (index * 61 + 7) % 100;
+              const dx = ((index * 17) % 141) - 70;
+              const dy = ((index * 29) % 121) - 60;
+              const delay = (index % 45) * 0.012;
+              const size = index % 7 === 0 ? 2 : 1;
+
+              return (
+                <i
+                  key={index}
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    animationDelay: `${delay}s`,
+                    // @ts-ignore
+                    "--dx": `${dx}px`,
+                    "--dy": `${dy}px`
+                  }}
+                />
+              );
+            })}
           </div>
 
-          {/* Card 4: Two-Point Measurement */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Ruler className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Two-Point Height Difference</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Pick reference points A & B to compute height differences ($\Delta h$), surface distances, slope gradients, and cross-section profiles.
-            </p>
-          </div>
-
-          {/* Card 5: Single-Image Depth */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Single-Image Support</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Upload landscape photos to extract OpenCV ORB keypoints, terrain horizon lines, and AI monocular relative depth heatmaps.
-            </p>
-          </div>
-
-          {/* Card 6: Export & Verification */}
-          <div className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">3D Asset Export</h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Export generated terrain models directly into standard GLTF/GLB or OBJ format for downstream CAD, GIS, or Unreal/Unity game engine workflows.
-            </p>
-          </div>
-
+          <div className="dw-energy-sweep" />
+          <div className="dw-transition-grid" />
+          <div className="dw-transition-glow" />
+          <div className="dw-transition-vignette" />
         </div>
       </section>
 
-      {/* Technical Architecture Highlight */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 w-full">
-        <div className="p-8 rounded-3xl bg-gradient-to-b from-[#0d121f] to-[#080b12] border border-slate-800/80 space-y-6">
+      {/* ============================================================== */}
+      {/* 2. ORIGINAL PROJECT CORE: QUICK DEMOS, CAPABILITIES & PIPELINE  */}
+      {/* ============================================================== */}
+      <div ref={contentRef} className="max-w-7xl mx-auto px-4 lg:px-8 w-full space-y-20 py-20">
+        
+        {/* Quick Demo Locations & Presets */}
+        <section className="text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-medium shadow-lg shadow-cyan-500/10">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Interactive Terrain Presets</span>
+          </div>
+
+          <div className="space-y-2 max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Explore High-Resolution Terrains
+            </h2>
+            <p className="text-sm text-slate-400">
+              Click any region to instantly load authoritative GIS elevation grids, satellite textures, and 3D meshes.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {samples.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onViewDemo(s.id)}
+                className="group px-4 py-2.5 bg-slate-900/90 hover:bg-cyan-950/80 text-slate-300 hover:text-cyan-200 border border-slate-800 hover:border-cyan-500/60 rounded-xl text-xs font-mono font-medium transition-all shadow-md hover:shadow-cyan-500/20 hover:-translate-y-0.5 flex items-center gap-2"
+              >
+                <Mountain className="w-3.5 h-3.5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <span>{s.name.split('(')[0]}</span>
+                <span className="text-[10px] text-slate-500 group-hover:text-cyan-400/80 font-mono">
+                  ({s.peak_elevation}m)
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Feature Cards Grid (Geospatial & CV Capabilities) */}
+        <section className="space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Core Geospatial & CV Capabilities
+            </h2>
+            <p className="text-sm text-slate-400 max-w-xl mx-auto">
+              A comprehensive pipeline engineered for accuracy, responsiveness, and multi-modal terrain alignment.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Card 1: Elevation Mapping */}
+            <div 
+              onClick={() => onStartReconstruction()}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                <Globe2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                Elevation Mapping
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Retrieve real-time elevation grids from SRTM, Copernicus 30m, Open-Elevation, and local GeoTIFF tiles with bilinear and bicubic resampling.
+              </p>
+            </div>
+
+            {/* Card 2: 3D Terrain Mesh */}
+            <div 
+              onClick={() => onStartReconstruction()}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                <Mountain className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-blue-300 transition-colors">
+                3D Terrain Mesh & Cesium
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Convert elevation matrices into optimized Three.js BufferGeometry and Cesium 3D Globe with dynamic hypsometric colormapping and wireframe.
+              </p>
+            </div>
+
+            {/* Card 3: Terrain Analysis */}
+            <div 
+              onClick={() => onNavigate('analysis')}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                Terrain Analysis & Landslide Risk
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Calculate Horn's topographic slope, aspect orientation, contour intervals, and machine learning landslide hazard scores.
+              </p>
+            </div>
+
+            {/* Card 4: Two-Point Measurement */}
+            <div 
+              onClick={() => onStartReconstruction()}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                <Ruler className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">
+                Two-Point Height Difference
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Pick reference points A & B to compute height differences, true 3D surface distances, slope gradients, and interactive elevation cross-sections.
+              </p>
+            </div>
+
+            {/* Card 5: Single-Image Depth */}
+            <div 
+              onClick={() => onNavigate('depth')}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                AI Monocular Depth Pipeline
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Upload landscape photos to extract OpenCV ORB keypoints, terrain horizon lines, and dense depth heatmaps with Structure-from-Motion.
+              </p>
+            </div>
+
+            {/* Card 6: 3D Asset Export */}
+            <div 
+              onClick={() => onStartReconstruction()}
+              className="p-6 rounded-2xl bg-[#0d121f] border border-slate-800/80 hover:border-cyan-500/40 hover:shadow-xl hover:shadow-cyan-500/10 transition-all space-y-3 cursor-pointer group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-110 transition-transform">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-rose-300 transition-colors">
+                3D Asset Export (GLTF & OBJ)
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Export generated terrain models directly into standard GLTF/GLB or OBJ format for downstream CAD, GIS, or Unreal/Unity game engine workflows.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Technical Architecture Highlight */}
+        <section className="p-8 rounded-3xl bg-gradient-to-b from-[#0d121f] to-[#080b12] border border-slate-800/80 space-y-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-xs font-mono text-cyan-400 tracking-wider uppercase font-semibold">
@@ -202,9 +461,29 @@ export const Landing: React.FC<LandingProps> = ({
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Ready to Reconstruct Call to Action */}
+        <section className="text-center py-12 px-6 rounded-3xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-slate-950/50 border border-cyan-800/40 space-y-5">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
+            Ready to Reconstruct Any Terrain on Earth?
+          </h2>
+          <p className="text-slate-400 max-w-xl mx-auto text-sm">
+            Select custom coordinates anywhere on the globe or choose from our curated presets with real SRTM elevation.
+          </p>
+          <button
+            onClick={onStartReconstruction}
+            className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-base shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105 transition-all inline-flex items-center gap-3"
+          >
+            <span>Launch 3D Reconstruction</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </section>
+
+      </div>
 
     </div>
   );
 };
+
+export default Landing;

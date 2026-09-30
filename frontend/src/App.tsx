@@ -140,15 +140,17 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0a0d14] text-slate-100 flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
       
-      {/* Global Navbar */}
-      <Navbar
-        currentPage={currentPage}
-        onNavigate={setCurrentPage}
-        samples={samples}
-        selectedSample={selectedSample}
-        onSelectSample={handleSelectSample}
-        hasReconstructedData={!!terrainData}
-      />
+      {/* Global Navbar (shown on all application working pages) */}
+      {currentPage !== 'landing' && (
+        <Navbar
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          samples={samples}
+          selectedSample={selectedSample}
+          onSelectSample={handleSelectSample}
+          hasReconstructedData={!!terrainData}
+        />
+      )}
 
       {/* Main Page Routing */}
       <main className="flex-1">
@@ -157,6 +159,7 @@ export const App: React.FC = () => {
             onStartReconstruction={handleStartFromLanding}
             onViewDemo={handleViewDemoFromLanding}
             samples={samples}
+            onNavigate={setCurrentPage}
           />
         )}
 
