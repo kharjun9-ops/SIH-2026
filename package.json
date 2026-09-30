@@ -1,0 +1,10 @@
+{
+  "name": "sih26175-root",
+  "private": true,
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=frontend && node -e \"const fs = require('fs'); fs.cpSync('frontend/dist', 'dist', {recursive: true}); console.log('Successfully copied dist to root dist');\""
+  }
+}
